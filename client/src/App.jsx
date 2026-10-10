@@ -84,7 +84,7 @@ export default function App() {
       {needSnap && !snap && <div className="grid min-h-screen place-items-center px-6 text-center"><div><p className="font-display text-2xl">{error === 'unreachable' ? 'Cannot reach the Dhara Alert server.' : t('loading')}</p>{error === 'weather-down' && <p className="mt-2 text-bone/60">The weather source is not reachable from the server yet. Retrying automatically.</p>}</div></div>}
 
       {needSnap && snap && view === 'map' && (
-        <div className="fixed inset-0 top-[53px] grid grid-cols-1 md:grid-cols-[19rem_1fr_auto]" style={{ bottom: 0 }}>
+        <div className="fixed inset-0 top-[53px] grid grid-cols-1 md:grid-cols-[19rem_1fr_auto]" style={{ bottom: 'var(--nav-h)' }}>
           <aside className={`${listOpen ? 'absolute inset-0 z-20' : 'hidden'} overflow-y-auto border-r border-bone/10 bg-basalt/90 md:static md:block md:bg-basalt/75`}>
             <h2 className="sticky top-0 border-b border-bone/10 bg-basalt/95 px-4 py-3 font-display text-base font-semibold">{t('sites_title')}</h2>
             <ol>{ranked.map((x) => (
@@ -93,8 +93,8 @@ export default function App() {
                 <span className="font-display text-lg font-bold tabular-nums">{Math.round(x.lhi)}</span></button></li>))}</ol>
           </aside>
           <div className="relative min-h-0"><MapView snap={snap} reports={reports} selectedId={selectedId} onSelect={setSelectedId} />
-            <button onClick={() => setListOpen((x) => !x)} className="btn absolute bottom-24 left-3 z-[500] bg-basalt/90 md:hidden">{t('sites_title')}</button></div>
-          {selected && <aside className="absolute inset-x-0 bottom-14 z-[600] max-h-[68%] border-t border-bone/15 bg-basalt/95 md:static md:max-h-none md:w-[24rem] md:border-l md:border-t-0 md:bg-basalt/85"><SitePanel site={selected} reports={reports} onClose={() => setSelectedId(null)} /></aside>}
+            <button onClick={() => setListOpen((x) => !x)} className="btn absolute bottom-4 left-3 z-[500] bg-basalt/90 md:hidden">{t('sites_title')}</button></div>
+          {selected && <aside className="absolute inset-x-0 bottom-0 z-[600] max-h-[68%] border-t border-bone/15 bg-basalt/95 md:static md:max-h-none md:w-[24rem] md:border-l md:border-t-0 md:bg-basalt/85"><SitePanel site={selected} reports={reports} onClose={() => setSelectedId(null)} /></aside>}
         </div>
       )}
       {needSnap && snap && view === 'dash' && <Dashboard snap={snap} onSelect={setSelectedId} setView={go} />}
