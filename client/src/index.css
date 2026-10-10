@@ -27,49 +27,9 @@ h1, h2, h3, .font-display { font-family: 'Bricolage Grotesque', 'Hind Siliguri',
 .pin-hot::after { content: ''; position: absolute; inset: -6px; border-radius: 50%; border: 2px solid var(--c); animation: pulse 1.8s ease-out infinite; }
 .rep { width: 14px; height: 14px; background: var(--c); transform: rotate(45deg); border: 2px solid #120d0a; box-shadow: 0 0 0 1px var(--c); }
 @keyframes pulse { 0% { transform: scale(.7); opacity: .9; } 100% { transform: scale(1.7); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .pin-hot::after, .animate-pulse { animation: none; } * { scroll-behavior: auto !important; } }
 
-/* site markers drawn as holes in the ground */
-.hole-icon { display: grid; place-items: center; background: none; border: 0; pointer-events: none !important; }
-.hole { position: relative; width: var(--s); height: var(--s); pointer-events: auto; cursor: pointer; transition: transform .2s; }
-.hole:hover { transform: scale(1.12); }
-.hole > * { position: absolute; }
-.hole-rim { inset: 0; border-radius: 48% 52% 55% 45% / 52% 45% 55% 48%;
-  background: radial-gradient(circle at 32% 28%, #8a6240 0%, #5b3d29 45%, #2c1c12 100%);
-  box-shadow: 0 0 0 1.5px var(--c), 0 3px 9px rgba(0,0,0,.65), inset 0 -3px 5px rgba(0,0,0,.55), inset 0 2px 3px rgba(255,220,170,.25);
-  animation: hole-wobble 7s ease-in-out infinite; }
-.hole-pit { inset: 17%; border-radius: 50%; overflow: hidden;
-  background: radial-gradient(circle at 50% 55%, #000 0 35%, #0b0604 65%, #2a1a10 100%);
-  box-shadow: inset 0 5px 9px rgba(0,0,0,.95), inset 0 -2px 4px rgba(255,200,150,.12);
-  animation: hole-sink 3.2s ease-in-out infinite; }
-.hole-swirl { position: absolute; inset: -20%; border-radius: 50%; opacity: .3;
-  background: conic-gradient(from 0deg, transparent 0 20%, var(--c) 25%, transparent 32% 58%, rgba(255,255,255,.25) 63%, transparent 70%);
-  animation: hole-spin 4.5s linear infinite; }
-.hole-hot .hole-swirl { opacity: .45; animation-duration: 2.2s; }
-.hole-cracks { inset: -42%; border-radius: 50%; opacity: .5;
-  background: repeating-conic-gradient(from 8deg, transparent 0 21deg, var(--c) 21deg 22deg, transparent 22deg 47deg, var(--c) 47deg 47.8deg, transparent 47.8deg 72deg);
-  -webkit-mask: radial-gradient(circle closest-side, transparent 48%, #000 56%, transparent 100%);
-  mask: radial-gradient(circle closest-side, transparent 48%, #000 56%, transparent 100%);
-  animation: hole-crack 2.6s ease-in-out infinite; }
-.hole-wave { inset: 0; border-radius: 50%; border: 2px solid var(--c); opacity: 0; animation: hole-wave 2.6s ease-out infinite; }
-.hole-wave.w2 { animation-delay: 1.3s; }
-.deb { left: 50%; top: 50%; width: 3px; height: 3px; margin: -1.5px; border-radius: 1px; background: #a47a50; opacity: 0; animation: hole-fall 2.8s ease-in infinite; }
-.hole-hot .deb { animation-duration: 1.8s; }
-.d1 { --x: -.55; --y: -.35; } .d2 { --x: .5; --y: -.45; animation-delay: .7s; } .d3 { --x: .35; --y: .55; animation-delay: 1.4s; } .d4 { --x: -.45; --y: .45; animation-delay: 2.1s; }
-.hole-num { inset: 0; display: grid; place-items: center; pointer-events: none; font: 800 11px 'Bricolage Grotesque', sans-serif; color: var(--c); text-shadow: 0 0 3px #000, 0 0 2px #000, 0 0 6px #000; }
-.hole.sel::after { content: ''; position: absolute; inset: -8px; border-radius: 50%; border: 2px dashed #efe4d3; animation: hole-spin 6s linear infinite; }
-@keyframes hole-wobble { 0%, 100% { border-radius: 48% 52% 55% 45% / 52% 45% 55% 48%; } 33% { border-radius: 55% 45% 46% 54% / 46% 56% 44% 54%; } 66% { border-radius: 45% 55% 52% 48% / 55% 47% 53% 45%; } }
-@keyframes hole-sink { 0%, 100% { transform: scale(1); } 50% { transform: scale(.88); } }
-@keyframes hole-spin { to { transform: rotate(360deg); } }
-@keyframes hole-crack { 0%, 100% { opacity: .3; } 50% { opacity: .75; } }
-@keyframes hole-wave { 0% { transform: scale(.9); opacity: .85; } 100% { transform: scale(2.1); opacity: 0; } }
-@keyframes hole-fall { 0% { transform: translate(calc(var(--s) * var(--x)), calc(var(--s) * var(--y))) rotate(0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translate(0, 0) rotate(220deg) scale(.3); opacity: 0; } }
-@media (prefers-reduced-motion: reduce) { .pin-hot::after, .animate-pulse, .hole *, .hole::after { animation: none !important; } .hole-wave { display: none; } * { scroll-behavior: auto !important; } }
-
-/* space taken by the bottom tab bar on phones, so the map is not hidden behind it */
-:root { --nav-h: 0px; }
-@media (max-width: 767px) { :root { --nav-h: calc(3.6rem + env(safe-area-inset-bottom)); } }
-
-.leaflet-container { width: 100%; height: 100%; background: #120d0a; font-family: 'Hind', system-ui, sans-serif; }
+.leaflet-container { background: #120d0a; font-family: 'Hind', system-ui, sans-serif; }
 .leaflet-popup-content-wrapper, .leaflet-popup-tip { background: #1c1410; color: #efe4d3; border-radius: 0; box-shadow: 0 6px 24px rgba(0,0,0,.6); }
 .leaflet-popup-content { margin: 12px 14px; font-size: 13.5px; line-height: 1.4; }
 .leaflet-control-layers, .leaflet-bar a { background: #1c1410 !important; color: #efe4d3 !important; border-color: rgba(239,228,211,.2) !important; border-radius: 0 !important; }
