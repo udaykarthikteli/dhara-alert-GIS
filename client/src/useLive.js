@@ -6,6 +6,7 @@ export function useLive(onAlert) {
   const [snap, setSnap] = useState(null);
   const [offline, setOffline] = useState(!navigator.onLine);
   const [error, setError] = useState(null);
+  const [detail, setDetail] = useState('');
   const [reports, setReports] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [health, setHealth] = useState(null);
@@ -15,8 +16,8 @@ export function useLive(onAlert) {
   const load = useCallback(async () => {
     try {
       const { data, offline: off } = await getSnapshot();
-      setSnap(data); setOffline(off || !navigator.onLine); setError(null);
-    } catch (e) { setError(e.status === 503 ? (e.body?.sources?.weather?.error ? 'weather-down' : 'warming') : 'unreachable'); }
+      setSnap(data); setOffline(off || !navigator.onLine); setError(null); setDetail('');
+    } catch (e) { setError(e.status === 503 ? (e.body?.sources?.weather?.error ? 'weather-down' : 'warming') : 'unreachable'); setDetail(e.body?.sources?.weather?.error || e.body?.sources?.terrain?.error || ''); }
     getReports().then(setReports); getAlerts().then(setAlerts);
   }, []);
 
@@ -37,5 +38,5 @@ export function useLive(onAlert) {
     return () => { clearInterval(poll); clearInterval(warm); window.removeEventListener('online', onOnline); window.removeEventListener('offline', onOffline); es && es.close(); };
   }, [load]);
 
-  return { snap, offline, error, reports, alerts, health, flushed, reload: load, setReports };
+  return { snap, offline, error, detail, reports, alerts, health, flushed, reload: load, setReports };
 }
