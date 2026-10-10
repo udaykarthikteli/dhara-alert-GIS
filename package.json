@@ -1,0 +1,31 @@
+{
+  "name": "dhara-alert",
+  "version": "1.0.0",
+  "description": "Dhara Alert - AI-based early warning and landslide risk monitoring for North-East India",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=18.18"
+  },
+  "scripts": {
+    "setup": "npm install && npm install --prefix client",
+    "dev": "concurrently -n api,web -c yellow,cyan \"npm:dev:server\" \"npm:dev:client\"",
+    "dev:server": "node --watch server/index.js",
+    "dev:client": "npm run dev --prefix client",
+    "build": "npm run build --prefix client",
+    "start": "node server/index.js",
+    "test": "node --test server/test/*.test.js",
+    "check:live": "node scripts/check-live.js",
+    "train": "node server/ml/train.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.4.0",
+    "helmet": "^7.1.0",
+    "multer": "^1.4.5-lts.1",
+    "three": "^0.186.1"
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.1"
+  }
+}
