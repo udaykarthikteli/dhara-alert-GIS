@@ -45,7 +45,15 @@ const server = app.listen(config.port, () => {
   if (config.adminTokenGenerated) console.log(`  Authority token (set ADMIN_TOKEN to fix it): ${config.adminToken}`);
   console.log('');
 });
-engine.refresh().then(() => console.log('[engine] first refresh done', engine.status.weather.ok ? '(live)' : '(weather unavailable: ' + engine.status.weather.error + ')'));
+// First load: keep retrying (20 s, 30 s, 45 s ... up to 2 min) until there is data, instead of waiting a full refresh interval.
+let retryIn = 20e3;
+const firstLoad = async () => {
+  await engine.refresh();
+  const ok = engine.snapshot?.sites?.length > 0;
+  console.log('[engine] refresh done', ok ? (engine.status.weather.ok ? '(live)' : '(stale)') : `(NO DATA yet | weather: ${engine.status.weather.error || 'pending'} | terrain: ${engine.status.terrain.error || 'ok'} | retry in ${Math.round(retryIn / 1000)}s)`);
+  if (!ok) { setTimeout(firstLoad, retryIn).unref(); retryIn = Math.min(retryIn * 1.5, 120e3); }
+};
+firstLoad();
 setInterval(() => engine.refresh(), config.refreshMinutes * 60e3).unref();
 const stop = () => { store.flushAll(); server.close(() => process.exit(0)); setTimeout(() => process.exit(0), 2000).unref(); };
 process.on('SIGINT', stop); process.on('SIGTERM', stop);
