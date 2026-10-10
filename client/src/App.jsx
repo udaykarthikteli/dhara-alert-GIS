@@ -30,7 +30,7 @@ export default function App() {
     setToasts((x) => [{ id: a.id, text, level: a.level, siteId: a.siteId }, ...x].slice(0, 3));
     if (localStorage.getItem('dhara.notify') === '1' && 'Notification' in window && Notification.permission === 'granted') new Notification('Dhara Alert · ' + a.site, { body: text, icon: '/icon.svg' });
   }, [lang]);
-  const { snap, offline, error, reports, alerts, health, flushed, reload, setReports } = useLive(onAlert);
+  const { snap, offline, error, detail, reports, alerts, health, flushed, reload, setReports } = useLive(onAlert);
 
   const risk = snap?.summary ? Math.min(1, snap.summary.maxLhi / 100) : 0.3;
   const selected = useMemo(() => snap?.sites.find((s) => s.id === selectedId) || null, [snap, selectedId]);
@@ -81,7 +81,7 @@ export default function App() {
 
       {view === 'home' && <Home snap={snap} error={error} onEnter={() => go('map')} onSelect={setSelectedId} />}
 
-      {needSnap && !snap && <div className="grid min-h-screen place-items-center px-6 text-center"><div><p className="font-display text-2xl">{error === 'unreachable' ? 'Cannot reach the Dhara Alert server.' : t('loading')}</p>{error === 'weather-down' && <p className="mt-2 text-bone/60">The weather source is not reachable from the server yet. Retrying automatically.</p>}</div></div>}
+      {needSnap && !snap && <div className="grid min-h-screen place-items-center px-6 text-center"><div><p className="font-display text-2xl">{error === 'unreachable' ? 'Cannot reach the Dhara Alert server.' : t('loading')}</p>{error === 'weather-down' && <p className="mt-2 text-bone/60">The weather source is not reachable from the server yet. Retrying automatically.</p>}{detail && <p className="mt-3 text-sm text-bone/50">Server says: {detail}</p>}</div></div>}
 
       {needSnap && snap && view === 'map' && (
         <div className="fixed inset-0 top-[53px] grid grid-cols-1 md:grid-cols-[19rem_1fr_auto]" style={{ bottom: 'var(--nav-h)' }}>
