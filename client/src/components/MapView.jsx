@@ -62,13 +62,15 @@ export default function MapView({ snap, reports, selectedId, onSelect }) {
 
     // Keep the map filling its box: re-measure on every size change and never let the view zoom out past the pan limit
     // (that is what used to leave grey/empty bands on wide screens).
-    let alive = true, raf = 0;
+    let alive = true, raf = 0, fitted = false;
     const fit = () => {
       if (!alive) return;
       m.invalidateSize({ pan: false });
       m.setMinZoom(Math.max(4, m.getBoundsZoom(PAN_LIMIT, true)));
+      if (!fitted && el.current && el.current.clientWidth > 0 && el.current.clientHeight > 0) { m.fitBounds(NE_INDIA, { padding: [16, 16], animate: false }); fitted = true; }
     };
-    m.whenReady(() => { fit(); m.fitBounds(NE_INDIA, { padding: [16, 16] }); });
+    m.setView([26.2, 92.6], 6.5);   // Leaflet draws nothing until the map has a view
+    fit();
     const ro = new ResizeObserver(() => { cancelAnimationFrame(raf); raf = requestAnimationFrame(fit); });
     ro.observe(el.current);
     window.addEventListener('orientationchange', fit);
