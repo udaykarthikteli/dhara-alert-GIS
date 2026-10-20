@@ -8,7 +8,7 @@ import { useI18n } from '../i18n.jsx';
 const REF = { referrerPolicy: 'origin' };   // some tile servers refuse requests that carry no Referer
 const BASES = {
   Terrain: ['https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', { maxZoom: 17, attribution: 'Map: &copy; OpenStreetMap contributors, SRTM | Style: &copy; OpenTopoMap (CC-BY-SA)', ...REF }],
-  Dark: ['https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom: 19, subdomains: 'abcd', attribution: '&copy; OpenStreetMap contributors &copy; CARTO', ...REF }],
+  Dark: ['https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}', { maxZoom: 17, maxNativeZoom: 16, attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ', ...REF }],
   Street: ['https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors', ...REF }],
   Satellite: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18, attribution: 'Imagery &copy; Esri, Maxar, Earthstar Geographics', ...REF }],
 };
@@ -47,11 +47,15 @@ export default function MapView({ snap, reports, selectedId, onSelect }) {
   useEffect(() => {
     const m = L.map(el.current, { zoomControl: true, zoomSnap: 0.5, maxBounds: PAN_LIMIT, maxBoundsViscosity: 0.9 });
     const base = Object.fromEntries(Object.entries(BASES).map(([k, [u, o]]) => [k, L.tileLayer(u, { keepBuffer: 4, updateWhenIdle: false, ...o })]));
+    // CARTO's free dark map now needs an API key, so the dark basemap is Esri's keyless Dark Gray canvas plus its place-name labels.
+    const dark = base.Dark;
+    const labels = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}', { maxZoom: 17, maxNativeZoom: 16, ...REF });
+    base.Dark = L.layerGroup([dark, labels]);
     base.Dark.addTo(m);
     // If the dark basemap never loads a single tile (blocked network, tile server down), fall back to the street map.
     let loaded = 0, failed = 0;
-    base.Dark.on('tileload', () => { loaded++; });
-    base.Dark.on('tileerror', () => { failed++; if (!loaded && failed >= 6 && m.hasLayer(base.Dark)) { m.removeLayer(base.Dark); base.Street.addTo(m); } });
+    dark.on('tileload', () => { loaded++; });
+    dark.on('tileerror', () => { failed++; if (!loaded && failed >= 6 && m.hasLayer(base.Dark)) { m.removeLayer(base.Dark); base.Street.addTo(m); } });
     layers.current = { sites: L.layerGroup().addTo(m), roads: L.layerGroup().addTo(m), reports: L.layerGroup().addTo(m), quakes: L.layerGroup(), heat: L.layerGroup().addTo(m) };
     L.control.layers(base, { 'Risk surface': layers.current.heat, Roads: layers.current.roads, 'Citizen reports': layers.current.reports, 'Earthquakes (30 d)': layers.current.quakes }, { collapsed: true, position: 'topright' }).addTo(m);
     map.current = m;
