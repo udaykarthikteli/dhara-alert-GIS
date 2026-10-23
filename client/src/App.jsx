@@ -97,7 +97,7 @@ export default function App() {
           {selected && <aside className="absolute inset-x-0 bottom-0 z-[600] max-h-[68%] border-t border-bone/15 bg-basalt/95 md:static md:max-h-none md:w-[24rem] md:border-l md:border-t-0 md:bg-basalt/85"><SitePanel site={selected} reports={reports} onClose={() => setSelectedId(null)} /></aside>}
         </div>
       )}
-      {needSnap && snap && view === 'dash' && <Dashboard snap={snap} onSelect={setSelectedId} setView={go} />}
+      {needSnap && snap && view === 'dash' && <Dashboard snap={snap} reports={reports} health={health} token={token} reload={reload} onSelect={setSelectedId} setView={go} />}
       {needSnap && snap && view === 'roads' && <RoadsView snap={snap} token={token} reload={reload} />}
       {view === 'report' && <ReportView reports={reports} token={token} reload={reload} setReports={setReports} />}
       {view === 'alerts' && <AlertsView alerts={alerts} onSelect={setSelectedId} setView={go} />}
