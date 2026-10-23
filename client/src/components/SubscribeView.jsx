@@ -37,6 +37,16 @@ export default function SubscribeView({ snap, health }) {
     const p = await Notification.requestPermission();
     if (p === 'granted') { localStorage.setItem('dhara.notify', '1'); setNotify(true); } else setMsg({ ok: false, text: 'Notifications are blocked in browser settings.' });
   };
+  const adminToken = (() => { try { return sessionStorage.getItem('dhara.admin') || ''; } catch { return ''; } })();
+  const sendTest = async () => {
+    setMsg(null);
+    try {
+      const r = await fetch('/api/admin/test-alert', { method: 'POST', headers: { 'x-admin-token': adminToken, 'content-type': 'application/json' }, body: JSON.stringify({ scope, value }) });
+      const b = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(b.error || `HTTP ${r.status}`);
+      setMsg({ ok: true, text: `Test alert for ${b.site}: delivered to ${b.sent} of ${b.attempted} subscriber(s).${b.attempted === 0 ? ' Nobody is subscribed to this area yet (or has not confirmed).' : ''}` });
+    } catch (err) { setMsg({ ok: false, text: err.message }); }
+  };
   const unsub = async () => { await deleteSubscriber(token); localStorage.removeItem('dhara.subtoken'); setToken(null); setMsg({ ok: true, text: 'Unsubscribed.' }); };
   const smsLangs = LANGS.filter((l) => ['en', 'hi', 'as', 'bn', 'ne', 'lus'].includes(l.code));
 
@@ -58,6 +68,7 @@ export default function SubscribeView({ snap, health }) {
         <button className="btn-primary">{t('subscribe')}</button>
         {token && <button type="button" onClick={unsub} className="btn-ghost ml-3 text-sm">Unsubscribe</button>}
         <div role="status" aria-live="polite" className={msg?.ok ? 'text-moss' : 'text-ember'}>{msg?.text}</div>
+        {adminToken && <div><button type="button" onClick={sendTest} className="btn text-sm">Send test alert (authority)</button><p className="mt-1 text-[12.5px] text-bone/50">Sends a clearly marked TEST message to everyone subscribed to the area selected above.</p></div>}
         {link && <a href={link} target="_blank" rel="noreferrer" className="btn-primary inline-block">Open Telegram and press Start</a>}
       </form>
       <div className="mt-8 border-t border-bone/10 pt-6"><label className="flex cursor-pointer items-center gap-3"><input type="checkbox" checked={notify} onChange={toggleNotify} className="h-4 w-4 accent-[#c9531f]" /><span>{t('notify')}</span></label>
