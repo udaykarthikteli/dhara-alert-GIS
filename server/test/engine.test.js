@@ -7,6 +7,7 @@ import path from 'node:path';
 
 process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'dhara-'));
 process.env.UPLOAD_DIR = path.join(process.env.DATA_DIR, 'up');
+process.env.TERRAIN_PAUSE_MS = '0';
 
 const nowSec = Math.floor(Date.now() / 3600e3) * 3600;
 const times = Array.from({ length: 24 * 11 }, (_, i) => nowSec - 7 * 86400 + i * 3600);
