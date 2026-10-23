@@ -26,7 +26,11 @@ export const config = {
   twilio: {
     sid: process.env.TWILIO_ACCOUNT_SID, token: process.env.TWILIO_AUTH_TOKEN, from: process.env.TWILIO_FROM,
   },
+  email: { apiKey: process.env.BREVO_API_KEY, from: process.env.EMAIL_FROM, name: process.env.EMAIL_FROM_NAME || 'Dhara Alert' },
+  telegram: { token: process.env.TELEGRAM_BOT_TOKEN, username: String(process.env.TELEGRAM_BOT_USERNAME || '').replace(/^@/, '') },
   // All-India coverage box (mainland + Andaman & Nicobar excluded; Lakshadweep excluded). Used to validate citizen reports and to query USGS.
   bounds: { south: 6.5, west: 68, north: 37.5, east: 97.6 },
 };
+config.emailEnabled = Boolean(config.email.apiKey && config.email.from);
+config.telegramEnabled = Boolean(config.telegram.token);
 config.smsEnabled = Boolean(config.twilio.sid && config.twilio.token && config.twilio.from);
