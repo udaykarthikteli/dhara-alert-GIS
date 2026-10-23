@@ -2,14 +2,17 @@
 const FORECAST = 'https://api.open-meteo.com/v1/forecast';
 const ELEVATION = 'https://api.open-meteo.com/v1/elevation';
 
-async function getJson(url, tries = 3) {
+async function getJson(url, tries = 4) {
   let err;
   for (let i = 0; i < tries; i++) {
     try {
       const r = await fetch(url, { headers: { 'user-agent': 'DharaAlert/1.0' }, signal: AbortSignal.timeout(25000) });
-      if (!r.ok) throw new Error(`HTTP ${r.status} from ${new URL(url).hostname}`);
+      if (!r.ok) { const e = new Error(`HTTP ${r.status} from ${new URL(url).hostname}`); e.status = r.status; throw e; }
       return await r.json();
-    } catch (e) { err = e; await new Promise((s) => setTimeout(s, 700 * (i + 1))); }
+    } catch (e) {
+      err = e;
+      if (i < tries - 1) await new Promise((s) => setTimeout(s, e.status === 429 ? Math.min(process.env.NODE_ENV === 'test' ? 0 : 20000, 8000 * (i + 1)) : 700 * (i + 1)));   // rate-limited: wait much longer
+    }
   }
   throw err;
 }
