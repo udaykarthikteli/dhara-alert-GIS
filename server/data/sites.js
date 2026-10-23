@@ -1,3 +1,7 @@
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
 // Monitored slope sites across the eight NE states.
 // Coordinates are town/hill centres. `pop` is an approximate Census-2011-scale figure used ONLY to weight
 // emergency prioritisation. Geology classes carry typical literature soil strengths (see README) and should be
@@ -53,3 +57,12 @@ export const ROADS = [
 ];
 
 export const STATES = ['Arunachal Pradesh', 'Assam', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Sikkim', 'Tripura'];
+
+// Waypoints (towns along each corridor). scripts/build-roads.js routes along the real road network between these.
+export const ROAD_WAYPOINTS = ROADS.map((r) => ({ id: r.id, name: r.name, pts: r.pts.map((p) => ({ ...p })) }));
+
+// If server/data/roads.json exists (made by scripts/build-roads.js from OpenStreetMap), it replaces the hand-drawn alignments.
+try {
+  const real = JSON.parse(fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), 'roads.json'), 'utf8'));
+  for (const r of ROADS) if (Array.isArray(real[r.id]) && real[r.id].length > 1) r.pts = real[r.id];
+} catch {}
