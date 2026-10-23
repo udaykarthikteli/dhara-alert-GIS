@@ -26,7 +26,7 @@ export const config = {
   twilio: {
     sid: process.env.TWILIO_ACCOUNT_SID, token: process.env.TWILIO_AUTH_TOKEN, from: process.env.TWILIO_FROM,
   },
-  // North-East India coverage box
-  bounds: { south: 21.5, west: 87.5, north: 29.6, east: 97.6 },
+  // All-India coverage box (mainland + Andaman & Nicobar excluded; Lakshadweep excluded). Used to validate citizen reports and to query USGS.
+  bounds: { south: 6.5, west: 68, north: 37.5, east: 97.6 },
 };
 config.smsEnabled = Boolean(config.twilio.sid && config.twilio.token && config.twilio.from);
