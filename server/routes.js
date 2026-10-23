@@ -8,6 +8,7 @@ import { config } from './config.js';
 import { bus } from './services/alerts.js';
 import { haversineKm } from './services/geo.js';
 import { ROADS } from './data/sites.js';
+import { sendEmail } from './services/email.js';
 
 const REPORT_TYPES = ['crack', 'move', 'blocked', 'debris', 'seep'];
 const MEDIA = { 'image/jpeg': '.jpg', 'image/png': '.png', 'image/webp': '.webp', 'video/mp4': '.mp4', 'video/webm': '.webm', 'video/quicktime': '.mov' };
@@ -34,7 +35,7 @@ export function buildRouter(store, engine) {
     res.status(401).json({ error: 'authority token required' });
   };
 
-  r.get('/health', (_q, res) => res.json({ ok: true, updatedAt: engine.snapshot?.updatedAt ?? null, sources: engine.status, sms: config.smsEnabled, model: engine.model.source }));
+  r.get('/health', (_q, res) => res.json({ ok: true, updatedAt: engine.snapshot?.updatedAt ?? null, sources: engine.status, sms: config.smsEnabled, telegram: config.telegramEnabled, email: config.emailEnabled, model: engine.model.source }));
   r.get('/snapshot', (_q, res) => {
     if (!engine.snapshot || !engine.snapshot.sites?.length) return res.status(503).json({ error: 'warming-up', sources: engine.status });
     res.json(engine.snapshot);
@@ -51,7 +52,7 @@ export function buildRouter(store, engine) {
       if (err) return res.status(err.message === 'unsupported-media' ? 415 : 400).json({ error: err.message });
       const lat = Number(req.body.lat), lng = Number(req.body.lng), type = String(req.body.type || '');
       if (!Number.isFinite(lat) || !Number.isFinite(lng)) return cleanupFail(req, res, 422, 'location required');
-      if (!inBounds(lat, lng)) return cleanupFail(req, res, 422, 'location outside North-East India coverage');
+      if (!inBounds(lat, lng)) return cleanupFail(req, res, 422, 'location outside India coverage');
       if (!REPORT_TYPES.includes(type)) return cleanupFail(req, res, 422, 'unknown report type');
       const t = Number(req.body.takenAt);
       const report = {
@@ -80,19 +81,53 @@ export function buildRouter(store, engine) {
   // ---- alerts & subscriptions ----------------------------------------------------------------
   r.get('/alerts', (req, res) => res.json(store.get('alerts', []).slice(0, Math.min(100, Number(req.query.limit) || 40))));
 
-  r.post('/subscribers', writeLimit, express.json(), (req, res) => {
-    let phone = String(req.body.phone || '').replace(/[\s-]/g, '');
-    if (/^\d{10}$/.test(phone)) phone = '+91' + phone;
-    if (!/^\+[1-9]\d{9,14}$/.test(phone)) return res.status(422).json({ error: 'Enter a valid mobile number, e.g. 98765 43210 or +91...' });
+  r.post('/subscribers', writeLimit, express.json(), async (req, res) => {
     const scope = ['all', 'state', 'site'].includes(req.body.scope) ? req.body.scope : 'all';
     const value = clean(req.body.value, 60);
     const lang = ['en', 'hi', 'as', 'bn', 'ne', 'lus'].includes(req.body.lang) ? req.body.lang : 'en';
+    if (req.body.channel === 'telegram') {
+      if (!config.telegramEnabled || !config.telegram.username) return res.status(503).json({ error: 'Telegram alerts are not available yet. Try again in a minute.' });
+      const cutoff = Date.now() - 24 * 3600e3;   // drop sign-ups that never pressed Start
+      const kept = store.get('subscribers', []).filter((s) => !(s.channel === 'telegram' && !s.chatId && s.createdAt < cutoff));
+      const tsub = { token: crypto.randomBytes(16).toString('hex'), channel: 'telegram', chatId: null, lang, scope, value, createdAt: Date.now() };
+      kept.push(tsub); store.set('subscribers', kept);
+      return res.status(201).json({ token: tsub.token, channel: 'telegram', telegramLink: `https://t.me/${config.telegram.username}?start=${tsub.token}` });
+    }
+    if (req.body.channel === 'email') {
+      if (!config.emailEnabled) return res.status(503).json({ error: 'Email alerts are not switched on for this deployment.' });
+      const email = String(req.body.email || '').trim().toLowerCase();
+      if (email.length > 120 || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) return res.status(422).json({ error: 'Enter a valid email address.' });
+      const base = `${req.protocol}://${req.get('host')}`;
+      const subs = store.get('subscribers', []);
+      let es = subs.find((s) => s.channel === 'email' && s.email === email && s.scope === scope && s.value === value);
+      if (!es) { es = { token: crypto.randomBytes(16).toString('hex'), channel: 'email', email, confirmed: false, lang, scope, value, base, createdAt: Date.now() }; subs.push(es); }
+      else { es.lang = lang; es.base = base; }
+      store.set('subscribers', subs);
+      if (!es.confirmed) await sendEmail(email, 'Confirm your Dhara Alert subscription', `Click to confirm you want landslide alerts from Dhara Alert:\n\n${base}/api/subscribers/confirm/${es.token}\n\nIf you did not ask for this, ignore this email and nothing will be sent.`);
+      return res.status(201).json({ token: es.token, channel: 'email', confirmed: es.confirmed });
+    }
+    let phone = String(req.body.phone || '').replace(/[\s-]/g, '');
+    if (/^\d{10}$/.test(phone)) phone = '+91' + phone;
+    if (!/^\+[1-9]\d{9,14}$/.test(phone)) return res.status(422).json({ error: 'Enter a valid mobile number, e.g. 98765 43210 or +91...' });
     const subs = store.get('subscribers', []);
     let sub = subs.find((s) => s.phone === phone && s.scope === scope && s.value === value);
     if (!sub) { sub = { token: crypto.randomBytes(16).toString('hex'), phone, lang, scope, value, createdAt: Date.now() }; subs.push(sub); }
     else sub.lang = lang;
     store.set('subscribers', subs);
     res.status(201).json({ token: sub.token, smsLive: config.smsEnabled });
+  });
+  const page = (res, msg) => res.type('html').send(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Dhara Alert</title><body style="font-family:system-ui;background:#120d0a;color:#efe4d3;display:grid;place-items:center;min-height:100vh;margin:0"><div style="max-width:30rem;padding:1.5rem"><h2>Dhara Alert</h2><p>${msg}</p><p><a style="color:#e8803a" href="/">Open the live map</a></p></div>`);
+  r.get('/subscribers/confirm/:token', (req, res) => {
+    const subs = store.get('subscribers', []);
+    const s = subs.find((x) => x.channel === 'email' && x.token === req.params.token);
+    if (!s) return page(res.status(404), 'This confirmation link is not valid any more.');
+    s.confirmed = true; store.set('subscribers', subs);
+    page(res, 'Confirmed. You will get an email when a slope in your area reaches Danger or a Danger is forecast.');
+  });
+  r.get('/subscribers/unsub/:token', (req, res) => {
+    const subs = store.get('subscribers', []);
+    store.set('subscribers', subs.filter((x) => x.token !== req.params.token));
+    page(res, 'You are unsubscribed. No more Dhara Alert emails will be sent to this address.');
   });
   r.delete('/subscribers/:token', (req, res) => {
     const subs = store.get('subscribers', []);
