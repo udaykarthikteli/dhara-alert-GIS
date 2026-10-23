@@ -31,13 +31,14 @@ test('refresh builds a complete snapshot, alerts and roads', async () => {
   const store = new Store(config.dataDir);
   const engine = createEngine(store);
   const snap = await engine.refresh();
-  assert.equal(snap.sites.length, 25);
+  const { SITES, ROADS } = await import('../data/sites.js');
+  assert.equal(snap.sites.length, SITES.length);
   assert.ok(snap.sources.weather.ok && snap.sources.quakes.ok && snap.sources.terrain.ok);
   const sh = snap.sites.find((s) => s.id === 'shillong');
   assert.ok(sh.lhi > 40, 'storm + M5.4 nearby should push Shillong high: ' + sh.lhi);
   assert.ok(sh.seismic.kh > 0.01);
   assert.ok(sh.forecast.length >= 20 && sh.series.rain.length > 100);
-  assert.ok(snap.roads.length === 7 && snap.roads.some((r) => r.status !== 'open'));
+  assert.ok(snap.roads.length === ROADS.length && snap.roads.some((r) => r.status !== 'open'));
   assert.ok(store.get('alerts', []).length > 0, 'alerts raised');
   const again = await engine.refresh({ refetch: false });
   const n = store.get('alerts', []).length;
