@@ -5,7 +5,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import rateLimit from 'express-rate-limit';
 import { config } from './config.js';
-import { bus } from './services/alerts.js';
+import { bus, raiseAlert } from './services/alerts.js';
 import { haversineKm } from './services/geo.js';
 import { ROADS } from './data/sites.js';
 import { sendEmail } from './services/email.js';
@@ -151,6 +151,15 @@ export function buildRouter(store, engine) {
 
   // ---- authority tools --------------------------------------------------------------------------
   r.get('/admin/check', admin, (_q, res) => res.json({ ok: true }));
+  // Sends a clearly-labelled TEST alert to everyone subscribed to the chosen area (to check Telegram / email / SMS delivery).
+  r.post('/admin/test-alert', admin, express.json(), async (req, res) => {
+    const sites = engine.snapshot?.sites || [];
+    if (!sites.length) return res.status(503).json({ error: 'data is still loading' });
+    const { scope, value } = req.body || {};
+    const site = (scope === 'site' && sites.find((s) => s.id === value)) || (scope === 'state' && sites.find((s) => s.state === value)) || sites[0];
+    const a = await raiseAlert(store, site, { level: 3, lhi: Math.max(80, Math.round(site.lhi)), type: 'now', test: true });
+    res.json({ site: site.name, attempted: a.sms.attempted, sent: a.sms.sent });
+  });
   r.post('/admin/refresh', admin, async (_q, res) => { await engine.refresh({ refetch: true }); res.json({ updatedAt: engine.snapshot?.updatedAt }); });
   r.post('/admin/roads/:id/override', admin, express.json(), (req, res) => {
     if (!ROADS.find((x) => x.id === req.params.id)) return res.status(404).json({ error: 'unknown road' });
