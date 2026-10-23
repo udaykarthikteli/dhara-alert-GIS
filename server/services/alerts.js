@@ -3,6 +3,8 @@ import crypto from 'node:crypto';
 import { config } from '../config.js';
 import { alertText, levelName } from '../../shared/i18n.js';
 import { LEVELS } from './risk.js';
+import { sendTelegram } from './telegram.js';
+import { sendEmail } from './email.js';
 
 export const bus = new EventEmitter();
 bus.setMaxListeners(0);
@@ -38,12 +40,27 @@ export async function raiseAlert(store, site, { level, lhi, type = 'now', peakAt
 
   if (level >= 3 || type === 'forecast') {
     const subs = store.get('subscribers', []).filter((s) => matches(s, site));
+    const gone = new Set();
     for (const s of subs) {
-      alert.sms.attempted++;
       const body = alertText(s.lang, { level: LEVELS[level], site: site.name, lhi }) + (type === 'forecast' ? '' : '');
-      const res = await sendSms(s.phone, body);
-      if (res.ok) alert.sms.sent++;
+      if (s.channel === 'telegram') {
+        if (!s.chatId) continue;                        // never pressed Start in the bot yet
+        alert.sms.attempted++;
+        const res = await sendTelegram(s.chatId, body);
+        if (res.ok) alert.sms.sent++; else if (res.blocked) gone.add(s.chatId);
+      } else if (s.channel === 'email') {
+        if (!s.confirmed) continue;                     // address not confirmed yet
+        alert.sms.attempted++;
+        const res = await sendEmail(s.email, `Dhara Alert: ${levelName(s.lang, LEVELS[level])} at ${site.name}`,
+          `${body}\n\nOpen the live map: ${s.base || ''}\n\nStop these emails: ${s.base || ''}/api/subscribers/unsub/${s.token}`);
+        if (res.ok) alert.sms.sent++;
+      } else {
+        alert.sms.attempted++;
+        const res = await sendSms(s.phone, body);
+        if (res.ok) alert.sms.sent++;
+      }
     }
+    if (gone.size) store.set('subscribers', store.get('subscribers', []).filter((s) => !(s.channel === 'telegram' && gone.has(s.chatId))));
     store.set('alerts', store.get('alerts', []));
   }
   return alert;
