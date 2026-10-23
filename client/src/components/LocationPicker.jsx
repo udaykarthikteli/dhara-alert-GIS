@@ -5,7 +5,7 @@ import 'leaflet/dist/leaflet.css';
 export default function LocationPicker({ value, onChange }) {
   const el = useRef(null), map = useRef(null), mk = useRef(null), cb = useRef(onChange); cb.current = onChange;
   useEffect(() => {
-    const m = L.map(el.current, { zoomControl: false, attributionControl: false }).setView(value ? [value.lat, value.lng] : [26.2, 92.6], value ? 12 : 6);
+    const m = L.map(el.current, { zoomControl: false, attributionControl: false }).setView(value ? [value.lat, value.lng] : [22.5, 80], value ? 12 : 5);
     L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { subdomains: 'abcd', maxZoom: 19 }).addTo(m);
     L.control.zoom({ position: 'bottomright' }).addTo(m);
     m.on('click', (e) => cb.current({ lat: e.latlng.lat, lng: e.latlng.lng }));
