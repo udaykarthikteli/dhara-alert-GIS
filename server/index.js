@@ -6,6 +6,7 @@ import { config } from './config.js';
 import { Store } from './store.js';
 import { createEngine } from './services/engine.js';
 import { buildRouter } from './routes.js';
+import { startTelegram } from './services/telegram.js';
 
 const store = new Store(config.dataDir);
 const engine = createEngine(store);
@@ -45,6 +46,7 @@ const server = app.listen(config.port, () => {
   if (config.adminTokenGenerated) console.log(`  Authority token (set ADMIN_TOKEN to fix it): ${config.adminToken}`);
   console.log('');
 });
+startTelegram(store);
 engine.refresh().then(() => console.log('[engine] first refresh done', engine.status.weather.ok ? '(live)' : '(weather unavailable: ' + engine.status.weather.error + ')'));
 setInterval(() => engine.refresh(), config.refreshMinutes * 60e3).unref();
 const stop = () => { store.flushAll(); server.close(() => process.exit(0)); setTimeout(() => process.exit(0), 2000).unref(); };
