@@ -1,7 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useI18n } from '../i18n.jsx';
 import { postSubscriber, deleteSubscriber } from '../api.js';
-import { STATES } from '../states.js';
 
 export default function SubscribeView({ snap, health }) {
   const { t, lang, LANGS } = useI18n();
@@ -12,6 +11,7 @@ export default function SubscribeView({ snap, health }) {
   const [msg, setMsg] = useState(null);
   const [notify, setNotify] = useState(() => localStorage.getItem('dhara.notify') === '1');
   const [token, setToken] = useState(() => localStorage.getItem('dhara.subtoken'));
+  const STATES = useMemo(() => [...new Set(snap.sites.map((x) => x.state))].sort(), [snap]);   // every state that has a monitored site
   useEffect(() => setValue(scope === 'state' ? STATES[0] : scope === 'site' ? snap.sites[0]?.id : ''), [scope]);
 
   const submit = async (e) => {
@@ -37,7 +37,7 @@ export default function SubscribeView({ snap, health }) {
         <label className="block"><span className="mb-1 block text-sm text-bone/70">{t('language')}</span><select value={slang} onChange={(e) => setSlang(e.target.value)} className="field w-full">{smsLangs.map((l) => <option key={l.code} value={l.code}>{l.native} ({l.name}){l.status === 'draft' ? ' · draft' : ''}</option>)}</select></label>
         <label className="block"><span className="mb-1 block text-sm text-bone/70">{t('area')}</span>
           <div className="grid grid-cols-[auto_1fr] gap-2">
-            <select value={scope} onChange={(e) => setScope(e.target.value)} className="field"><option value="all">All NE India</option><option value="state">A state</option><option value="site">A slope</option></select>
+            <select value={scope} onChange={(e) => setScope(e.target.value)} className="field"><option value="all">All India</option><option value="state">A state</option><option value="site">A slope</option></select>
             {scope === 'state' && <select value={value} onChange={(e) => setValue(e.target.value)} className="field">{STATES.map((s) => <option key={s}>{s}</option>)}</select>}
             {scope === 'site' && <select value={value} onChange={(e) => setValue(e.target.value)} className="field">{[...snap.sites].sort((a, b) => a.name.localeCompare(b.name)).map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select>}
           </div></label>
