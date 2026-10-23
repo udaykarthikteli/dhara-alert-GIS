@@ -2,7 +2,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-// Monitored slope sites across the eight NE states.
+// Monitored slope sites across India's landslide-prone regions: the Himalaya (J&K, Ladakh, Himachal, Uttarakhand, Sikkim,
+// Darjeeling), the North-East hills, the Western Ghats (Maharashtra, Karnataka, Kerala, Tamil Nadu) and the Eastern Ghats.
 // Coordinates are town/hill centres. `pop` is an approximate Census-2011-scale figure used ONLY to weight
 // emergency prioritisation. Geology classes carry typical literature soil strengths (see README) and should be
 // replaced by site-specific geotechnical data when GSI / state DMA data is available.
@@ -12,6 +13,8 @@ export const GEOLOGY = {
   granite_gneiss:  { label: 'Weathered granite-gneiss',        c: 10, phi: 30, gamma: 18.5, z: 3.0, thetaSat: 0.42 },
   sandstone_shale: { label: 'Weathered sandstone-shale',       c: 12, phi: 27, gamma: 19.5, z: 3.5, thetaSat: 0.44 },
   phyllite:        { label: 'Weathered phyllite / schist',     c: 9,  phi: 26, gamma: 19.0, z: 3.0, thetaSat: 0.43 },
+  basalt:          { label: 'Weathered basalt (Deccan trap)',  c: 11, phi: 29, gamma: 19.0, z: 3.0, thetaSat: 0.45 },
+  colluvium:       { label: 'Colluvium / glacial debris',      c: 5,  phi: 32, gamma: 19.5, z: 4.0, thetaSat: 0.38 },
 };
 
 const S = (id, name, state, lat, lng, pop, geology) => ({ id, name, state, lat, lng, pop, geology });
@@ -42,6 +45,58 @@ export const SITES = [
   S('tawang', 'Tawang', 'Arunachal Pradesh', 27.586, 91.8594, 11000, 'phyllite'),
   S('pasighat', 'Pasighat', 'Arunachal Pradesh', 28.0667, 95.3333, 24000, 'sandstone_shale'),
   S('jampui', 'Jampui Hills', 'Tripura', 24.23, 92.28, 3000, 'sandstone_shale'),
+
+  // ---- West Bengal (Darjeeling Himalaya) ----
+  S('darjeeling', 'Darjeeling', 'West Bengal', 27.041, 88.2663, 120000, 'phyllite'),
+  S('kalimpong', 'Kalimpong', 'West Bengal', 27.0594, 88.4695, 50000, 'phyllite'),
+  S('kurseong', 'Kurseong', 'West Bengal', 26.8814, 88.2776, 40000, 'phyllite'),
+  // ---- Himachal Pradesh ----
+  S('shimla', 'Shimla', 'Himachal Pradesh', 31.1048, 77.1734, 170000, 'sandstone_shale'),
+  S('mandi', 'Mandi', 'Himachal Pradesh', 31.708, 76.9318, 27000, 'sandstone_shale'),
+  S('kullu', 'Kullu', 'Himachal Pradesh', 31.9579, 77.1095, 18000, 'colluvium'),
+  S('manali', 'Manali', 'Himachal Pradesh', 32.2396, 77.1887, 8000, 'colluvium'),
+  S('dharamshala', 'Dharamshala', 'Himachal Pradesh', 32.219, 76.3234, 53000, 'sandstone_shale'),
+  S('chamba', 'Chamba', 'Himachal Pradesh', 32.5534, 76.1258, 20000, 'phyllite'),
+  S('kinnaur', 'Kinnaur (Reckong Peo)', 'Himachal Pradesh', 31.5379, 78.2741, 2000, 'granite_gneiss'),
+  // ---- Uttarakhand ----
+  S('mussoorie', 'Mussoorie', 'Uttarakhand', 30.4598, 78.0664, 30000, 'sandstone_shale'),
+  S('tehri', 'New Tehri', 'Uttarakhand', 30.3783, 78.4803, 24000, 'phyllite'),
+  S('uttarkashi', 'Uttarkashi', 'Uttarakhand', 30.7268, 78.4354, 16000, 'phyllite'),
+  S('rudraprayag', 'Rudraprayag', 'Uttarakhand', 30.2844, 78.9811, 9000, 'phyllite'),
+  S('gopeshwar', 'Gopeshwar (Chamoli)', 'Uttarakhand', 30.4086, 79.3203, 22000, 'phyllite'),
+  S('joshimath', 'Joshimath', 'Uttarakhand', 30.555, 79.5648, 17000, 'colluvium'),
+  S('nainital', 'Nainital', 'Uttarakhand', 29.3919, 79.4542, 41000, 'phyllite'),
+  S('almora', 'Almora', 'Uttarakhand', 29.5971, 79.6591, 35000, 'phyllite'),
+  S('pithoragarh', 'Pithoragarh', 'Uttarakhand', 29.5829, 80.2182, 56000, 'phyllite'),
+  // ---- Jammu & Kashmir, Ladakh ----
+  S('udhampur', 'Udhampur', 'Jammu & Kashmir', 32.916, 75.1416, 90000, 'sandstone_shale'),
+  S('katra', 'Katra', 'Jammu & Kashmir', 32.9916, 74.9455, 9000, 'sandstone_shale'),
+  S('ramban', 'Ramban', 'Jammu & Kashmir', 33.2432, 75.2467, 10000, 'sandstone_shale'),
+  S('banihal', 'Banihal', 'Jammu & Kashmir', 33.4381, 75.1938, 8000, 'sandstone_shale'),
+  S('doda', 'Doda', 'Jammu & Kashmir', 33.1493, 75.5481, 15000, 'phyllite'),
+  S('kishtwar', 'Kishtwar', 'Jammu & Kashmir', 33.3116, 75.7676, 15000, 'phyllite'),
+  S('leh', 'Leh', 'Ladakh', 34.1526, 77.5771, 31000, 'colluvium'),
+  S('kargil', 'Kargil', 'Ladakh', 34.5539, 76.1349, 16000, 'colluvium'),
+  // ---- Maharashtra (northern Western Ghats) ----
+  S('lonavala', 'Lonavala', 'Maharashtra', 18.7546, 73.4062, 57000, 'basalt'),
+  S('mahad', 'Mahad (Raigad)', 'Maharashtra', 18.0833, 73.4167, 25000, 'basalt'),
+  S('mahabaleshwar', 'Mahabaleshwar', 'Maharashtra', 17.9237, 73.6586, 13000, 'basalt'),
+  // ---- Karnataka ----
+  S('ankola', 'Ankola (Uttara Kannada)', 'Karnataka', 14.6612, 74.3045, 20000, 'laterite'),
+  S('sakleshpur', 'Sakleshpur', 'Karnataka', 12.9449, 75.7878, 20000, 'laterite'),
+  S('madikeri', 'Madikeri (Kodagu)', 'Karnataka', 12.4244, 75.7382, 33000, 'granite_gneiss'),
+  // ---- Kerala ----
+  S('wayanad', 'Wayanad (Meppadi)', 'Kerala', 11.553, 76.136, 20000, 'laterite'),
+  S('nilambur', 'Nilambur', 'Kerala', 11.28, 76.23, 46000, 'laterite'),
+  S('munnar', 'Munnar', 'Kerala', 10.0889, 77.0595, 38000, 'granite_gneiss'),
+  S('idukki', 'Idukki', 'Kerala', 9.8494, 76.9714, 10000, 'granite_gneiss'),
+  // ---- Tamil Nadu (Nilgiris, Palani hills) ----
+  S('ooty', 'Udhagamandalam (Ooty)', 'Tamil Nadu', 11.4102, 76.695, 88000, 'granite_gneiss'),
+  S('coonoor', 'Coonoor', 'Tamil Nadu', 11.353, 76.7959, 50000, 'granite_gneiss'),
+  S('kodaikanal', 'Kodaikanal', 'Tamil Nadu', 10.2381, 77.4892, 36000, 'granite_gneiss'),
+  // ---- Eastern Ghats (Andhra Pradesh, Odisha) ----
+  S('araku', 'Araku Valley', 'Andhra Pradesh', 18.3273, 82.8759, 6000, 'granite_gneiss'),
+  S('koraput', 'Koraput', 'Odisha', 18.812, 82.711, 41000, 'granite_gneiss'),
 ];
 
 const P = (lat, lng) => ({ lat, lng });
@@ -54,9 +109,21 @@ export const ROADS = [
   { id: 'gtk-lachung', name: 'Gangtok - Mangan - Lachung', pts: [P(27.3389, 88.6065), P(27.51, 88.53), P(27.6, 88.64), P(27.69, 88.74)] },
   { id: 'slc-azl-lng', name: 'Silchar - Aizawl - Lunglei', pts: [P(24.8333, 92.7789), P(24.28, 92.67), P(23.7271, 92.7176), P(23.3, 92.85), P(22.888, 92.735)] },
   { id: 'itn-ziro', name: 'Itanagar - Ziro', pts: [P(27.0844, 93.6053), P(27.2, 93.7), P(27.545, 93.83)] },
+  { id: 'slg-darjeeling', name: 'Siliguri - Kurseong - Darjeeling', pts: [P(26.7271, 88.3953), P(26.8814, 88.2776), P(27.041, 88.2663)] },
+  { id: 'shimla-manali', name: 'Shimla - Mandi - Kullu - Manali', pts: [P(31.1048, 77.1734), P(31.708, 76.9318), P(31.9579, 77.1095), P(32.2396, 77.1887)] },
+  { id: 'rishikesh-badrinath', name: 'Rishikesh - Rudraprayag - Chamoli - Joshimath', pts: [P(30.0869, 78.2676), P(30.2844, 78.9811), P(30.4086, 79.3203), P(30.555, 79.5648)] },
+  { id: 'rishikesh-uttarkashi', name: 'Rishikesh - New Tehri - Uttarkashi', pts: [P(30.0869, 78.2676), P(30.3783, 78.4803), P(30.7268, 78.4354)] },
+  { id: 'jammu-srinagar', name: 'Jammu - Udhampur - Ramban - Banihal - Srinagar', pts: [P(32.7266, 74.857), P(32.916, 75.1416), P(33.2432, 75.2467), P(33.4381, 75.1938), P(34.0837, 74.7973)] },
+  { id: 'panvel-pune', name: 'Panvel - Khopoli - Lonavala - Pune (ghat section)', pts: [P(18.9894, 73.1175), P(18.7866, 73.3454), P(18.7546, 73.4062), P(18.5204, 73.8567)] },
+  { id: 'mahad-mahabaleshwar', name: 'Mahad - Mahabaleshwar', pts: [P(18.0833, 73.4167), P(17.9237, 73.6586)] },
+  { id: 'mangaluru-sakleshpur', name: 'Mangaluru - Shiradi Ghat - Sakleshpur', pts: [P(12.9141, 74.856), P(12.9449, 75.7878)] },
+  { id: 'kozhikode-wayanad', name: 'Kozhikode - Thamarassery Ghat - Wayanad', pts: [P(11.2588, 75.7804), P(11.553, 76.136)] },
+  { id: 'kothamangalam-munnar', name: 'Kothamangalam - Munnar', pts: [P(10.06, 76.628), P(10.0889, 77.0595)] },
+  { id: 'mettupalayam-ooty', name: 'Mettupalayam - Coonoor - Ooty', pts: [P(11.299, 76.94), P(11.353, 76.7959), P(11.4102, 76.695)] },
+  { id: 'vizag-araku', name: 'Visakhapatnam - Araku Valley', pts: [P(17.6868, 83.2185), P(18.3273, 82.8759)] },
 ];
 
-export const STATES = ['Arunachal Pradesh', 'Assam', 'Manipur', 'Meghalaya', 'Mizoram', 'Nagaland', 'Sikkim', 'Tripura'];
+export const STATES = [...new Set(SITES.map((s) => s.state))].sort();
 
 // Waypoints (towns along each corridor). scripts/build-roads.js routes along the real road network between these.
 export const ROAD_WAYPOINTS = ROADS.map((r) => ({ id: r.id, name: r.name, pts: r.pts.map((p) => ({ ...p })) }));
