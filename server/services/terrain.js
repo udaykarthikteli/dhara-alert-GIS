@@ -18,17 +18,32 @@ export function slopeFromElevations(elev) {
 }
 
 /** Returns { [id]: { elev, slope } }, cached in the store so the DEM is queried once per site. */
+// Done in small batches (5 sites = 85 points = one elevation call) with a pause between them, and progress is saved after
+// every batch, so a rate-limit (HTTP 429) part-way through never throws away what was already fetched.
+const BATCH = 5;
+const pause = (ms) => new Promise((r) => setTimeout(r, ms));
 export async function ensureTerrain(store, sites) {
   const cache = store.get('terrain', {});
   const missing = sites.filter((s) => !cache[s.id]);
   if (!missing.length) return cache;
-  const all = missing.flatMap(ringPoints);
-  const elev = await fetchElevations(all);
   const per = 1 + RADII.length * BEARINGS.length;
-  missing.forEach((s, i) => {
-    const e = elev.slice(i * per, (i + 1) * per);
-    cache[s.id] = { elev: Math.round(e[0]), slope: Math.round(slopeFromElevations(e) * 10) / 10 };
-  });
-  store.set('terrain', cache);
+  const gap = Number(process.env.TERRAIN_PAUSE_MS ?? 1500);
+  for (let i = 0; i < missing.length; i += BATCH) {
+    const group = missing.slice(i, i + BATCH);
+    try {
+      const elev = await fetchElevations(group.flatMap(ringPoints));
+      group.forEach((s, k) => {
+        const e = elev.slice(k * per, (k + 1) * per);
+        cache[s.id] = { elev: Math.round(e[0]), slope: Math.round(slopeFromElevations(e) * 10) / 10 };
+      });
+      store.set('terrain', cache);
+    } catch (err) {
+      store.set('terrain', cache);                     // keep the batches that did succeed
+      if (!Object.keys(cache).length) throw err;       // nothing at all -> report failure
+      err.message = `terrain partial (${Object.keys(cache).length}/${sites.length} sites): ${err.message}`;
+      throw err;
+    }
+    if (i + BATCH < missing.length && gap) await pause(gap);
+  }
   return cache;
 }
