@@ -13,8 +13,8 @@ const BASES = {
   Satellite: ['https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 18, attribution: 'Imagery &copy; Esri, Maxar, Earthstar Geographics', ...REF }],
 };
 // Area the app is about, and a much wider pan limit around it.
-const NE_INDIA = [[21.5, 87.5], [29.6, 97.6]];
-const PAN_LIMIT = [[8, 72], [38, 110]];
+const INDIA = [[6.5, 68], [37.5, 97.6]];
+const PAN_LIMIT = [[0, 60], [42, 105]];
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -66,10 +66,10 @@ export default function MapView({ snap, reports, selectedId, onSelect }) {
     const fit = () => {
       if (!alive) return;
       m.invalidateSize({ pan: false });
-      m.setMinZoom(Math.max(4, m.getBoundsZoom(PAN_LIMIT, true)));
-      if (!fitted && el.current && el.current.clientWidth > 0 && el.current.clientHeight > 0) { m.fitBounds(NE_INDIA, { padding: [16, 16], animate: false }); fitted = true; }
+      m.setMinZoom(Math.max(3, m.getBoundsZoom(PAN_LIMIT, true)));
+      if (!fitted && el.current && el.current.clientWidth > 0 && el.current.clientHeight > 0) { m.fitBounds(INDIA, { padding: [16, 16], animate: false }); fitted = true; }
     };
-    m.setView([26.2, 92.6], 6.5);   // Leaflet draws nothing until the map has a view
+    m.setView([22.5, 80], 5);   // Leaflet draws nothing until the map has a view
     fit();
     const ro = new ResizeObserver(() => { cancelAnimationFrame(raf); raf = requestAnimationFrame(fit); });
     ro.observe(el.current);
