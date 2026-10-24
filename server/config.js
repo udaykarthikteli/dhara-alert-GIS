@@ -20,7 +20,7 @@ export const config = {
   dataDir: process.env.DATA_DIR || path.join(here, 'data'),
   uploadDir: process.env.UPLOAD_DIR || path.join(here, 'uploads'),
   clientDist: path.join(here, '..', 'client', 'dist'),
-  refreshMinutes: Number(process.env.REFRESH_MINUTES || 15),
+  refreshMinutes: Number(process.env.REFRESH_MINUTES || 30),
   adminToken: process.env.ADMIN_TOKEN || crypto.randomBytes(9).toString('base64url'),
   adminTokenGenerated: !process.env.ADMIN_TOKEN,
   twilio: {
