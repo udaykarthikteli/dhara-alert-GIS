@@ -16,7 +16,9 @@
     "start": "node server/index.js",
     "test": "node --test server/test/*.test.js",
     "check:live": "node scripts/check-live.js",
-    "train": "node server/ml/train.js"
+    "train": "node server/ml/train.js",
+    "seed:terrain": "node scripts/seed-terrain.js",
+    "export:seed": "node scripts/export-seed.js"
   },
   "dependencies": {
     "express": "^4.19.2",
