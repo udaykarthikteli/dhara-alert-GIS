@@ -8,6 +8,7 @@ import ReportView from './components/ReportView.jsx';
 import AlertsView from './components/AlertsView.jsx';
 import SubscribeView from './components/SubscribeView.jsx';
 import Home from './components/Home.jsx';
+import Legend from './components/Legend.jsx';
 import { useLive } from './useLive.js';
 import { useI18n } from './i18n.jsx';
 import { LEVEL_COLOR, ago } from './util.js';
@@ -24,6 +25,7 @@ export default function App() {
   const [token, setToken] = useState(() => sessionStorage.getItem('dhara.admin') || '');
   const [authOpen, setAuthOpen] = useState(false);
   const [listOpen, setListOpen] = useState(false);
+  const [staleHidden, setStaleHidden] = useState(false);
 
   const onAlert = useCallback((a) => {
     const text = a.texts?.[lang] || a.texts?.en || `${a.site}: ${a.level}`;
@@ -72,6 +74,14 @@ export default function App() {
 
       {(offline || flushed > 0) && <div className="fixed inset-x-0 top-[57px] z-20 bg-ochre px-4 py-1.5 text-center text-sm font-medium text-basalt">{offline ? t('offline') : `${flushed} queued report(s) sent.`}</div>}
 
+      {snap && snap.stale && !offline && !staleHidden && (
+        <div className="fixed left-1/2 top-[62px] z-[900] flex max-w-[72vw] -translate-x-1/2 items-start gap-2 border border-ochre/50 bg-basalt/95 px-3 py-1.5 text-[12.5px] leading-snug text-bone shadow-xl sm:max-w-[30rem]" role="status">
+          <i className="mt-1.5 inline-block h-2 w-2 shrink-0 rounded-full bg-ochre" />
+          <span>Showing last saved data{snap.updatedAt ? ` (${ago(snap.updatedAt)})` : ''}. Live weather is temporarily unavailable; retrying automatically.</span>
+          <button onClick={() => setStaleHidden(true)} className="ml-1 shrink-0 text-bone/60 hover:text-bone" aria-label="Dismiss">×</button>
+        </div>
+      )}
+
       <div className="pointer-events-none fixed right-3 top-16 z-40 flex w-[min(24rem,92vw)] flex-col gap-2">
         {toasts.map((x) => (
           <div key={x.id} className="pointer-events-auto border-l-4 bg-basalt/95 p-3 text-[14px] shadow-2xl" style={{ borderColor: LEVEL_COLOR[['low', 'watch', 'warning', 'danger', 'critical'].indexOf(x.level)] }} role="alert">
@@ -93,6 +103,7 @@ export default function App() {
                 <span className="font-display text-lg font-bold tabular-nums">{Math.round(x.lhi)}</span></button></li>))}</ol>
           </aside>
           <div className="relative min-h-0"><MapView snap={snap} reports={reports} selectedId={selectedId} onSelect={setSelectedId} />
+            <Legend snap={snap} />
             <button onClick={() => setListOpen((x) => !x)} className="btn absolute bottom-4 left-3 z-[500] bg-basalt/90 md:hidden">{t('sites_title')}</button></div>
           {selected && <aside className="absolute inset-x-0 bottom-0 z-[600] max-h-[68%] border-t border-bone/15 bg-basalt/95 md:static md:max-h-none md:w-[24rem] md:border-l md:border-t-0 md:bg-basalt/85"><SitePanel site={selected} reports={reports} onClose={() => setSelectedId(null)} /></aside>}
         </div>
