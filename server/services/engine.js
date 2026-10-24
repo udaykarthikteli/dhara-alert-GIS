@@ -9,7 +9,9 @@ import { loadModel } from './model.js';
 
 const HOUR = 3600;
 const status = { weather: { ok: null }, quakes: { ok: null }, terrain: { ok: null } };
-const mem = { weather: null, quakes: [], running: null };
+const mem = { weather: null, weatherAt: 0, quakes: [], running: null, coolUntil: 0 };
+const COOL_MS = Number(process.env.RATE_LIMIT_COOLDOWN_MIN || 60) * 60e3;   // pause all Open-Meteo calls after a 429
+const MIN_GAP_MS = Number(process.env.WEATHER_MIN_GAP_MIN || 25) * 60e3;    // never refetch weather more often than this
 
 export function citizenScore(site, reports, now = Date.now()) {
   let s = 0;
@@ -98,15 +100,28 @@ export function createEngine(store) {
   async function build({ refetch }) {
     const now = Date.now();
     const state = store.get('state', { levels: {}, forecastAlertAt: {}, overrides: {} });
-    // terrain
-    let terrain;
-    try { terrain = await ensureTerrain(store, SITES); status.terrain = { ok: true, at: now }; }
-    catch (e) { terrain = store.get('terrain', {}); status.terrain = { ok: false, at: now, error: e.message }; }
+    // restore last good weather after a restart so the app has data immediately
+    if (!mem.weather) {
+      const saved = store.get('weather-cache', null);
+      if (saved && saved.data) { mem.weather = saved.data; mem.weatherAt = saved.at; status.weather = { ok: true, at: saved.at, cached: true }; }
+    }
+    const cooling = now < mem.coolUntil;
+    const noteLimit = (e) => { if (e && e.status === 429) { mem.coolUntil = Date.now() + Math.max(COOL_MS, e.retryAfterMs || 0); console.warn('[engine] Open-Meteo 429 - pausing calls until', new Date(mem.coolUntil).toISOString()); } };
+    // terrain (normally fully seeded from server/seed/terrain.json, so this makes no network calls)
+    let terrain = store.get('terrain', {});
+    if (SITES.every((s) => terrain[s.id])) status.terrain = { ok: true, at: now };
+    else if (cooling) status.terrain = { ok: false, at: now, error: 'rate-limited, retrying after cool-down' };
+    else {
+      try { terrain = await ensureTerrain(store, SITES); status.terrain = { ok: true, at: now }; }
+      catch (e) { noteLimit(e); terrain = store.get('terrain', {}); status.terrain = { ok: false, at: now, error: e.message }; }
+    }
     // weather + quakes
-    if (refetch || !mem.weather) {
-      const [w, q] = await Promise.allSettled([fetchWeather(SITES), fetchQuakes()]);
-      if (w.status === 'fulfilled') { mem.weather = w.value; status.weather = { ok: true, at: now }; }
-      else status.weather = { ok: false, at: now, error: w.reason.message };
+    const weatherDue = !mem.weather || (refetch && now - mem.weatherAt >= MIN_GAP_MS);
+    if (weatherDue || !mem.quakes.length) {
+      const skipWeather = !weatherDue || Date.now() < mem.coolUntil;
+      const [w, q] = await Promise.allSettled([skipWeather ? Promise.reject(Object.assign(new Error(weatherDue ? 'rate-limited, retrying after cool-down' : 'fresh'), { skip: true })) : fetchWeather(SITES), fetchQuakes()]);
+      if (w.status === 'fulfilled') { mem.weather = w.value; mem.weatherAt = now; store.set('weather-cache', { at: now, data: w.value }); status.weather = { ok: true, at: now }; }
+      else if (!w.reason.skip || weatherDue) { noteLimit(w.reason); if (!mem.weather) status.weather = { ok: false, at: now, error: w.reason.message }; else status.weather = { ok: false, at: mem.weatherAt, error: w.reason.message, usingCached: true }; }
       if (q.status === 'fulfilled') { mem.quakes = q.value; status.quakes = { ok: true, at: now }; }
       else status.quakes = { ok: false, at: now, error: q.reason.message };
     }
