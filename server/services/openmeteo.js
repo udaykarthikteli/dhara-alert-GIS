@@ -1,17 +1,27 @@
 // Open-Meteo: free, keyless weather + soil-moisture + elevation API (https://open-meteo.com).
-const FORECAST = 'https://api.open-meteo.com/v1/forecast';
-const ELEVATION = 'https://api.open-meteo.com/v1/elevation';
+// Optional paid key (OPEN_METEO_API_KEY) switches to the dedicated, non-shared endpoint.
+const KEY = process.env.OPEN_METEO_API_KEY;
+const HOST = KEY ? 'https://customer-api.open-meteo.com' : 'https://api.open-meteo.com';
+const FORECAST = HOST + '/v1/forecast';
+const ELEVATION = HOST + '/v1/elevation';
+const withKey = (u) => (KEY ? `${u}&apikey=${encodeURIComponent(KEY)}` : u);
 
-async function getJson(url, tries = 4) {
+// A 429 is NOT retried: retrying inside the same minute only burns more quota. The engine enters a cool-down instead.
+async function getJson(url, tries = 3) {
   let err;
   for (let i = 0; i < tries; i++) {
     try {
-      const r = await fetch(url, { headers: { 'user-agent': 'DharaAlert/1.0' }, signal: AbortSignal.timeout(25000) });
-      if (!r.ok) { const e = new Error(`HTTP ${r.status} from ${new URL(url).hostname}`); e.status = r.status; throw e; }
+      const r = await fetch(withKey(url), { headers: { 'user-agent': 'DharaAlert/1.0' }, signal: AbortSignal.timeout(25000) });
+      if (!r.ok) {
+        const e = new Error(`HTTP ${r.status} from ${new URL(url).hostname}`); e.status = r.status;
+        e.retryAfterMs = Number(r.headers.get('retry-after')) * 1000 || 0;
+        throw e;
+      }
       return await r.json();
     } catch (e) {
       err = e;
-      if (i < tries - 1) await new Promise((s) => setTimeout(s, e.status === 429 ? Math.min(process.env.NODE_ENV === 'test' ? 0 : 20000, 8000 * (i + 1)) : 700 * (i + 1)));   // rate-limited: wait much longer
+      if (e.status === 429) throw e;
+      if (i < tries - 1) await new Promise((s) => setTimeout(s, 700 * (i + 1)));
     }
   }
   throw err;
@@ -21,7 +31,10 @@ const chunk = (a, n) => Array.from({ length: Math.ceil(a.length / n) }, (_, i) =
 /** Returns { [siteId]: { t:[unix s], rain:[mm/h], theta:[m3/m3] } } covering 7 days past + 4 days forecast. */
 export async function fetchWeather(sites) {
   const out = {};
-  for (const group of chunk(sites, 40)) {
+  let first = true;
+  for (const group of chunk(sites, 25)) {
+    if (!first) await new Promise((r) => setTimeout(r, process.env.NODE_ENV === 'test' ? 0 : 2000));
+    first = false;
     const url = `${FORECAST}?latitude=${group.map((s) => s.lat).join(',')}&longitude=${group.map((s) => s.lng).join(',')}` +
       '&hourly=precipitation,soil_moisture_3_to_9cm,soil_moisture_9_to_27cm,soil_moisture_27_to_81cm' +
       '&past_days=7&forecast_days=4&timeformat=unixtime&timezone=GMT';
