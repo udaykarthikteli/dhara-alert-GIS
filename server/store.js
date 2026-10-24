@@ -1,5 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const SEED_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), 'seed');
 
 /** Minimal durable JSON store (atomic writes). Swap for PostgreSQL/PostGIS at scale. */
 export class Store {
@@ -10,7 +13,9 @@ export class Store {
   get(name, fallback) {
     if (this.cache.has(name)) return this.cache.get(name);
     let v = fallback;
-    try { v = JSON.parse(fs.readFileSync(path.join(this.dir, name + '.json'), 'utf8')); } catch {}
+    // 1) live data dir  2) committed seed (server/seed/<name>.json) so a fresh/ephemeral disk never starts empty
+    try { v = JSON.parse(fs.readFileSync(path.join(this.dir, name + '.json'), 'utf8')); }
+    catch { try { v = JSON.parse(fs.readFileSync(path.join(SEED_DIR, name + '.json'), 'utf8')); } catch {} }
     this.cache.set(name, v);
     return v;
   }
