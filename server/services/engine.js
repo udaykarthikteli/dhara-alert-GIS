@@ -10,7 +10,7 @@ import { loadModel } from './model.js';
 const HOUR = 3600;
 const status = { weather: { ok: null }, quakes: { ok: null }, terrain: { ok: null } };
 const mem = { weather: null, weatherAt: 0, quakes: [], running: null, coolUntil: 0 };
-const COOL_MS = Number(process.env.RATE_LIMIT_COOLDOWN_MIN || 60) * 60e3;   // pause all Open-Meteo calls after a 429
+const COOL_MS = Number(process.env.RATE_LIMIT_COOLDOWN_MIN || 10) * 60e3;   // pause all Open-Meteo calls after a 429
 const MIN_GAP_MS = Number(process.env.WEATHER_MIN_GAP_MIN || 25) * 60e3;    // never refetch weather more often than this
 
 export function citizenScore(site, reports, now = Date.now()) {
@@ -115,6 +115,8 @@ export function createEngine(store) {
       try { terrain = await ensureTerrain(store, SITES); status.terrain = { ok: true, at: now }; }
       catch (e) { noteLimit(e); terrain = store.get('terrain', {}); status.terrain = { ok: false, at: now, error: e.message }; }
     }
+    // never let missing terrain hide a site: fall back to a mid-range slope estimate until real DEM data is available
+    terrain = { ...Object.fromEntries(SITES.map((s) => [s.id, { elev: null, slope: 25, estimated: true }])), ...terrain };
     // weather + quakes
     const weatherDue = !mem.weather || (refetch && now - mem.weatherAt >= MIN_GAP_MS);
     if (weatherDue || !mem.quakes.length) {
