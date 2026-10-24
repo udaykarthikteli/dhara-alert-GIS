@@ -19,7 +19,7 @@ export const GEOLOGY = {
 
 const S = (id, name, state, lat, lng, pop, geology) => ({ id, name, state, lat, lng, pop, geology });
 
-export const SITES = [
+const ALL_SITES = [
   S('guwahati', 'Guwahati hills', 'Assam', 26.1445, 91.7362, 1100000, 'granite_gneiss'),
   S('diphu', 'Diphu', 'Assam', 25.84, 93.43, 64000, 'granite_gneiss'),
   S('haflong', 'Haflong', 'Assam', 25.1667, 93.0167, 12000, 'sandstone_shale'),
@@ -99,9 +99,14 @@ export const SITES = [
   S('koraput', 'Koraput', 'Odisha', 18.812, 82.711, 41000, 'granite_gneiss'),
 ];
 
+// Region switch: default = North-East India (Problem Statement 26001, 25 sites). Set REGION=india on the server to monitor all 67 sites.
+const NER_STATES = new Set(['Assam', 'Meghalaya', 'Mizoram', 'Nagaland', 'Manipur', 'Sikkim', 'Arunachal Pradesh', 'Tripura']);
+const NER_ONLY = String(process.env.REGION || 'ner').toLowerCase() !== 'india';
+export const SITES = NER_ONLY ? ALL_SITES.filter((s) => NER_STATES.has(s.state)) : ALL_SITES;
+
 const P = (lat, lng) => ({ lat, lng });
 // Corridors are approximate alignments between named waypoints (not surveyed centre-lines).
-export const ROADS = [
+const ALL_ROADS = [
   { id: 'gwh-shl-hfl', name: 'Guwahati - Shillong - Jowai - Haflong', pts: [P(26.1445, 91.7362), P(25.5788, 91.8933), P(25.45, 92.2), P(25.1667, 93.0167)] },
   { id: 'dmp-koh-imp', name: 'Dimapur - Kohima - Imphal', pts: [P(25.904, 93.7266), P(25.6751, 94.1086), P(25.5167, 94.1167), P(25.2667, 94.0167), P(24.817, 93.9368)] },
   { id: 'imp-noney-jir', name: 'Imphal - Noney - Jiribam', pts: [P(24.817, 93.9368), P(24.974, 93.583), P(24.804, 93.113)] },
@@ -122,6 +127,9 @@ export const ROADS = [
   { id: 'mettupalayam-ooty', name: 'Mettupalayam - Coonoor - Ooty', pts: [P(11.299, 76.94), P(11.353, 76.7959), P(11.4102, 76.695)] },
   { id: 'vizag-araku', name: 'Visakhapatnam - Araku Valley', pts: [P(17.6868, 83.2185), P(18.3273, 82.8759)] },
 ];
+
+const NER_ROADS = new Set(['gwh-shl-hfl', 'dmp-koh-imp', 'imp-noney-jir', 'tawang', 'gtk-lachung', 'slc-azl-lng', 'itn-ziro']);
+export const ROADS = NER_ONLY ? ALL_ROADS.filter((r) => NER_ROADS.has(r.id)) : ALL_ROADS;
 
 export const STATES = [...new Set(SITES.map((s) => s.state))].sort();
 
