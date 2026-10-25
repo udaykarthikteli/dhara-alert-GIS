@@ -1,7 +1,7 @@
 import { LEVEL_COLOR } from '../util.js';
 import { useI18n } from '../i18n.jsx';
 
-export default function Home({ snap, error, onEnter, onSelect }) {
+export default function Home({ snap, error, onEnter, onSelect, onGo = () => {} }) {
   const { t, level } = useI18n();
   const s = snap?.summary;
   const top = snap ? [...snap.sites].sort((a, b) => b.priority - a.priority).slice(0, 4) : [];
@@ -11,6 +11,10 @@ export default function Home({ snap, error, onEnter, onSelect }) {
         <h1 className="font-display text-[2.6rem] font-extrabold leading-[1.02] tracking-tight sm:text-6xl md:text-7xl" style={{ textShadow: '0 2px 30px rgba(0,0,0,.55)' }}>{t('tagline')}</h1>
         <p className="mt-5 max-w-xl text-lg leading-snug text-bone/85" style={{ textShadow: '0 1px 12px rgba(0,0,0,.7)' }}>{t('home_sub')}</p>
         <button onClick={onEnter} className="btn-primary mt-8 px-7 py-3.5 text-lg">{t('enter')}</button>
+        <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-[15px] text-bone/80" style={{ textShadow: '0 1px 10px rgba(0,0,0,.7)' }}>
+          <button onClick={() => onGo('compare')} className="underline-offset-4 hover:text-bone hover:underline">Compare sites</button>
+          <button onClick={() => onGo('backtest')} className="underline-offset-4 hover:text-bone hover:underline">See a real past landslide replayed</button>
+        </div>
       </div>
       <div className="mt-12 flex flex-wrap items-end gap-x-12 gap-y-6 md:mt-14">
         {s ? (<>
