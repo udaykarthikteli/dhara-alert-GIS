@@ -1,14 +1,22 @@
-import { Gauge, ForecastChart, RainBars, FactorBar } from './charts.jsx';
-import { LEVEL_COLOR, ACTIONS, ago, clock } from '../util.js';
+import { useState } from 'react';
+import { Gauge, RainBars, FactorBar } from './charts.jsx';
+import RiskTimeline from './RiskTimeline.jsx';
+import AdviceCard from './AdviceCard.jsx';
+import { LEVEL_COLOR, ago } from '../util.js';
 import { useI18n } from '../i18n.jsx';
 import { haversineKm } from '../geo.js';
 
 export default function SitePanel({ site, reports, onClose }) {
   const { t, level } = useI18n();
+  const [copied, setCopied] = useState(false);
   if (!site) return null;
+  const copyLink = async () => {
+    const url = `${window.location.origin}${window.location.pathname}#site=${encodeURIComponent(site.id)}`;
+    try { await navigator.clipboard.writeText(url); } catch { window.prompt('Copy this link', url); }
+    setCopied(true); setTimeout(() => setCopied(false), 2000);
+  };
   const near = reports.filter((r) => haversineKm(site, r) <= 3).slice(0, 4);
   const f = site.features;
-  const peakSoon = site.peak && site.peak.lhi > site.lhi + 5;
   return (
     <div className="flex h-full flex-col overflow-y-auto">
       <div className="flex items-start justify-between gap-3 border-b border-bone/10 px-5 py-4">
@@ -16,7 +24,10 @@ export default function SitePanel({ site, reports, onClose }) {
           <h2 className="font-display text-2xl font-bold leading-tight">{site.name}</h2>
           <p className="mt-0.5 text-sm text-bone/60">{site.state} · {site.elev} m · steepest nearby slope {Math.round(site.slope)}°</p>
         </div>
-        <button onClick={onClose} className="btn-ghost -mr-2" aria-label="Close">✕</button>
+        <div className="flex shrink-0 items-center gap-1">
+          <button onClick={copyLink} className="btn-ghost text-[13px]" title="Copy a link that opens this site">{copied ? 'Link copied' : 'Share'}</button>
+          <button onClick={onClose} className="btn-ghost -mr-2" aria-label="Close">✕</button>
+        </div>
       </div>
 
       <section className="px-5 pt-4">
@@ -28,8 +39,9 @@ export default function SitePanel({ site, reports, onClose }) {
             <div className="mt-1 text-[13px] text-bone/60">{t('priority')}: <b className="text-bone">{site.priority}</b>/100</div>
           </div>
         </div>
-        <p className="mt-3 border-l-2 pl-3 text-[14px] leading-snug text-bone/85" style={{ borderColor: LEVEL_COLOR[site.levelIndex] }}>{ACTIONS[site.levelIndex]}</p>
       </section>
+
+      <AdviceCard site={site} />
 
       <section className="grid grid-cols-3 gap-px px-5 pt-5 text-center">
         {[[t('fos'), site.fs.toFixed(2), site.fs < 1 ? 'text-crimson' : site.fs < 1.3 ? 'text-ember' : 'text-moss'], [t('rain24'), site.rain.r24 + ' mm', ''], [t('saturation'), Math.round(site.saturation * 100) + '%', '']].map(([k, v, c]) => (
@@ -39,8 +51,7 @@ export default function SitePanel({ site, reports, onClose }) {
 
       <section className="px-5 pt-5">
         <h3 className="mb-1 font-display text-[15px] font-semibold">{t('forecast72')}</h3>
-        <ForecastChart forecast={site.forecast} />
-        {peakSoon && <p className="mt-1 text-[13px] text-ember">Peak {Math.round(site.peak.lhi)} expected {clock(site.peak.t)} IST.</p>}
+        <RiskTimeline site={site} />
         <div className="mt-3"><RainBars series={site.series} /></div>
       </section>
 
