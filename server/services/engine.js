@@ -177,5 +177,31 @@ export function createEngine(store) {
     mem.running = build(opts).catch((e) => { console.error('[engine] refresh failed:', e.message); return snapshot; }).finally(() => { mem.running = null; });
     return mem.running;
   };
-  return { refresh, get snapshot() { return snapshot; }, status, model };
+  /**
+   * Accepts hourly weather fetched elsewhere (e.g. the presenter's laptop, whose IP is not rate-limited) so the hosted site
+   * stays live when its own IP is blocked. Strictly validated: known sites only, sane ranges, must cover "now".
+   */
+  function injectWeather(payload) {
+    const nowSec = Date.now() / 1000;
+    const clean = {};
+    for (const s of SITES) {
+      const w = payload && payload[s.id];
+      if (!w || !Array.isArray(w.t) || !Array.isArray(w.rain) || !Array.isArray(w.theta)) continue;
+      const n = w.t.length;
+      if (n < 48 || n > 600 || w.rain.length !== n || w.theta.length !== n) continue;
+      if (!w.t.every(Number.isFinite) || !w.rain.every((x) => Number.isFinite(x) && x >= 0 && x <= 500) || !w.theta.every((x) => Number.isFinite(x) && x >= 0 && x <= 1)) continue;
+      if (w.t[0] > nowSec - 24 * 3600 || w.t[n - 1] < nowSec) continue; // must cover the last day up to now
+      clean[s.id] = { t: w.t, rain: w.rain, theta: w.theta };
+    }
+    const accepted = Object.keys(clean).length;
+    if (!accepted) return { ok: false, accepted: 0, of: SITES.length, error: 'no valid sites in payload' };
+    const now = Date.now();
+    mem.weather = { ...(mem.weather || {}), ...clean }; mem.weatherAt = now;
+    store.set('weather-cache', { at: now, data: mem.weather });
+    status.weather = { ok: true, at: now, pushed: true };
+    const rebuild = () => refresh({ refetch: false });
+    if (mem.running) mem.running.then(rebuild, rebuild); else rebuild();
+    return { ok: true, accepted, of: SITES.length };
+  }
+  return { refresh, injectWeather, get snapshot() { return snapshot; }, status, model };
 }
