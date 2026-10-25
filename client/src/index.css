@@ -76,3 +76,8 @@ h1, h2, h3, .font-display { font-family: 'Bricolage Grotesque', 'Hind Siliguri',
 .leaflet-control-attribution { background: rgba(18,13,10,.75) !important; color: rgba(239,228,211,.6) !important; }
 .leaflet-control-attribution a { color: #8fc4bb !important; }
 ::-webkit-scrollbar { width: 8px; height: 8px; } ::-webkit-scrollbar-thumb { background: rgba(239,228,211,.18); }
+
+/* presentation mode: larger text, fewer controls */
+html[data-present="1"] { font-size: 18px; }
+html[data-present="1"] .no-present { display: none !important; }
+html[data-present="1"] .pm-top { top: 62px !important; bottom: 0 !important; }
