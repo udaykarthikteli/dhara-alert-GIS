@@ -156,6 +156,11 @@ export function buildRouter(store, engine) {
   });
 
   // ---- authority tools --------------------------------------------------------------------------
+  // Weather pushed by a trusted machine (scripts/push-weather.js) when this host's IP is rate-limited by Open-Meteo.
+  r.post('/admin/weather', admin, express.json({ limit: '6mb' }), (req, res) => {
+    const out = engine.injectWeather(req.body && req.body.weather);
+    res.status(out.ok ? 200 : 422).json(out);
+  });
   r.get('/admin/check', admin, (_q, res) => res.json({ ok: true }));
   // Sends a clearly-labelled TEST alert to everyone subscribed to the chosen area (to check Telegram / email / SMS delivery).
   r.post('/admin/test-alert', admin, express.json(), async (req, res) => {
