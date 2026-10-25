@@ -19,7 +19,8 @@
     "seed:terrain": "node scripts/seed-terrain.js",
     "export:seed": "node scripts/export-seed.js",
     "train": "node server/ml/train.js",
-    "build:backtest": "node scripts/build-backtest.js"
+    "build:backtest": "node scripts/build-backtest.js",
+    "push:weather": "node scripts/push-weather.js"
   },
   "dependencies": {
     "express": "^4.19.2",
