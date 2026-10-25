@@ -9,7 +9,7 @@ import { loadModel } from './model.js';
 
 const HOUR = 3600;
 const status = { weather: { ok: null }, quakes: { ok: null }, terrain: { ok: null } };
-const mem = { weather: null, weatherAt: 0, quakes: [], running: null, coolUntil: 0 };
+const mem = { weather: null, weatherAt: 0, quakes: [], running: null, coolWeather: 0, coolTerrain: 0 };
 const COOL_MS = Number(process.env.RATE_LIMIT_COOLDOWN_MIN || 10) * 60e3;   // pause all Open-Meteo calls after a 429
 const MIN_GAP_MS = Number(process.env.WEATHER_MIN_GAP_MIN || 25) * 60e3;    // never refetch weather more often than this
 
@@ -105,28 +105,28 @@ export function createEngine(store) {
       const saved = store.get('weather-cache', null);
       if (saved && saved.data) { mem.weather = saved.data; mem.weatherAt = saved.at; status.weather = { ok: true, at: saved.at, cached: true }; }
     }
-    const cooling = now < mem.coolUntil;
-    const noteLimit = (e) => { if (e && e.status === 429) { mem.coolUntil = Date.now() + Math.max(COOL_MS, e.retryAfterMs || 0); console.warn('[engine] Open-Meteo 429 - pausing calls until', new Date(mem.coolUntil).toISOString()); } };
-    // terrain (normally fully seeded from server/seed/terrain.json, so this makes no network calls)
-    let terrain = store.get('terrain', {});
-    if (SITES.every((s) => terrain[s.id])) status.terrain = { ok: true, at: now };
-    else if (cooling) status.terrain = { ok: false, at: now, error: 'rate-limited, retrying after cool-down' };
-    else {
-      try { terrain = await ensureTerrain(store, SITES); status.terrain = { ok: true, at: now }; }
-      catch (e) { noteLimit(e); terrain = store.get('terrain', {}); status.terrain = { ok: false, at: now, error: e.message }; }
-    }
-    // never let missing terrain hide a site: fall back to a mid-range slope estimate until real DEM data is available
-    terrain = { ...Object.fromEntries(SITES.map((s) => [s.id, { elev: null, slope: 25, estimated: true }])), ...terrain };
-    // weather + quakes
+    // separate cool-downs: a terrain 429 must never block weather (and vice-versa)
+    const noteLimit = (kind, e) => { if (e && e.status === 429) { mem[kind] = Date.now() + Math.max(COOL_MS, e.retryAfterMs || 0); console.warn(`[engine] Open-Meteo 429 (${kind}) - pausing until`, new Date(mem[kind]).toISOString()); } };
+    // 1) weather first - it is the only call needed for live data
     const weatherDue = !mem.weather || (refetch && now - mem.weatherAt >= MIN_GAP_MS);
     if (weatherDue || !mem.quakes.length) {
-      const skipWeather = !weatherDue || Date.now() < mem.coolUntil;
+      const skipWeather = !weatherDue || Date.now() < mem.coolWeather;
       const [w, q] = await Promise.allSettled([skipWeather ? Promise.reject(Object.assign(new Error(weatherDue ? 'rate-limited, retrying after cool-down' : 'fresh'), { skip: true })) : fetchWeather(SITES), fetchQuakes()]);
       if (w.status === 'fulfilled') { mem.weather = w.value; mem.weatherAt = now; store.set('weather-cache', { at: now, data: w.value }); status.weather = { ok: true, at: now }; }
-      else if (!w.reason.skip || weatherDue) { noteLimit(w.reason); if (!mem.weather) status.weather = { ok: false, at: now, error: w.reason.message }; else status.weather = { ok: false, at: mem.weatherAt, error: w.reason.message, usingCached: true }; }
+      else if (!w.reason.skip || weatherDue) { noteLimit('coolWeather', w.reason); if (!mem.weather) status.weather = { ok: false, at: now, error: w.reason.message }; else status.weather = { ok: false, at: mem.weatherAt, error: w.reason.message, usingCached: true }; }
       if (q.status === 'fulfilled') { mem.quakes = q.value; status.quakes = { ok: true, at: now }; }
       else status.quakes = { ok: false, at: now, error: q.reason.message };
     }
+    // 2) terrain (normally fully seeded from server/seed/terrain.json = no network). Only tried once weather works, in small steps.
+    let terrain = store.get('terrain', {});
+    if (SITES.every((s) => terrain[s.id])) status.terrain = { ok: true, at: now };
+    else if (!mem.weather || Date.now() < mem.coolTerrain) status.terrain = { ok: false, at: now, error: 'waiting (rate-limit cool-down), using estimated slopes' };
+    else {
+      try { terrain = await ensureTerrain(store, SITES); status.terrain = { ok: true, at: now }; }
+      catch (e) { noteLimit('coolTerrain', e); terrain = store.get('terrain', {}); status.terrain = { ok: false, at: now, error: e.message }; }
+    }
+    // never let missing terrain hide a site: fall back to a mid-range slope estimate until real DEM data is available
+    terrain = { ...Object.fromEntries(SITES.map((s) => [s.id, { elev: null, slope: 25, estimated: true }])), ...terrain };
     const usable = SITES.filter((s) => mem.weather && mem.weather[s.id] && terrain[s.id]);
     if (!usable.length) {
       snapshot = { ...(snapshot || { sites: [], roads: [], quakes: [], summary: null }), updatedAt: snapshot ? snapshot.updatedAt : null, stale: true, sources: { ...status }, model: model.source };
