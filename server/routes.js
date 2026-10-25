@@ -36,6 +36,12 @@ export function buildRouter(store, engine) {
   };
 
   r.get('/health', (_q, res) => res.json({ ok: true, updatedAt: engine.snapshot?.updatedAt ?? null, sources: engine.status, sms: config.smsEnabled, telegram: config.telegramEnabled, email: config.emailEnabled, model: engine.model.source }));
+  // Pre-built replays of real past events (server/seed/backtest.json, made by `npm run build:backtest`).
+  r.get('/backtest', (_q, res) => {
+    const b = store.get('backtest', null);
+    if (!b || !Array.isArray(b.events) || !b.events.length) return res.status(404).json({ error: 'not-built' });
+    res.json(b);
+  });
   r.get('/snapshot', (_q, res) => {
     if (!engine.snapshot || !engine.snapshot.sites?.length) return res.status(503).json({ error: 'warming-up', sources: engine.status });
     res.json(engine.snapshot);
