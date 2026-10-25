@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import Background from './Background.jsx';
 import MapView from './components/MapView.jsx';
 import SitePanel from './components/SitePanel.jsx';
@@ -9,12 +9,17 @@ import AlertsView from './components/AlertsView.jsx';
 import SubscribeView from './components/SubscribeView.jsx';
 import Home from './components/Home.jsx';
 import Legend from './components/Legend.jsx';
+import CompareView from './components/CompareView.jsx';
+import BacktestView from './components/BacktestView.jsx';
+import Tour from './Tour.jsx';
 import { useLive } from './useLive.js';
 import { useI18n } from './i18n.jsx';
 import { LEVEL_COLOR, ago } from './util.js';
 import { adminCheck } from './api.js';
 
 const NAV = [['map', 'nav_map', 'M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z'], ['dash', 'nav_dash', 'M4 20V10m6 10V4m6 16v-7m4 7H2'], ['roads', 'nav_roads', 'M8 3L4 21M16 3l4 18M12 4v3m0 4v3m0 4v3'], ['report', 'nav_report', 'M12 5v14M5 12h14'], ['alerts', 'nav_alerts', 'M6 9a6 6 0 1112 0c0 6 2 7 2 7H4s2-1 2-7zm4 10a2 2 0 004 0'], ['sms', 'nav_sms', 'M4 5h16v11H9l-5 4z']];
+// Desktop-only extras (phones reach them from the home screen, so the bottom bar keeps its 6 buttons)
+const EXTRA = [['compare', 'Compare', 'M7 4v16M17 4v16M3 9h8M13 15h8'], ['backtest', 'Replay', 'M3 12a9 9 0 109-9M3 4v5h5M12 8v5l3 2']];
 const Icon = ({ d }) => <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={d} /></svg>;
 
 export default function App() {
@@ -26,6 +31,10 @@ export default function App() {
   const [authOpen, setAuthOpen] = useState(false);
   const [listOpen, setListOpen] = useState(false);
   const [staleHidden, setStaleHidden] = useState(false);
+  const [compareIds, setCompareIds] = useState([]);
+  const [btId, setBtId] = useState(null);
+  const [tourOpen, setTourOpen] = useState(false);
+  const [present, setPresent] = useState(false);
 
   const onAlert = useCallback((a) => {
     const text = a.texts?.[lang] || a.texts?.en || `${a.site}: ${a.level}`;
@@ -46,7 +55,35 @@ export default function App() {
   };
   const logout = () => { sessionStorage.removeItem('dhara.admin'); setToken(''); setAuthOpen(false); };
 
-  const needSnap = !['home'].includes(view);
+  // Share links: #site=<id>, #compare=<id>,<id>, #backtest=<event>. Read once on load, kept up to date as you navigate.
+  useEffect(() => {
+    const m = window.location.hash.replace(/^#/, '').match(/^(site|compare|backtest)=(.+)$/);
+    if (!m) return;
+    let v = m[2]; try { v = decodeURIComponent(v); } catch {}
+    if (m[1] === 'site') { setSelectedId(v); setView('map'); }
+    else if (m[1] === 'compare') { setCompareIds(v.split(',').filter(Boolean).slice(0, 3)); setView('compare'); }
+    else { setBtId(v); setView('backtest'); }
+  }, []);
+  useEffect(() => {
+    let h = '';
+    if (view === 'map' && selectedId) h = '#site=' + encodeURIComponent(selectedId);
+    else if (view === 'compare' && compareIds.length) h = '#compare=' + compareIds.map(encodeURIComponent).join(',');
+    else if (view === 'backtest' && btId) h = '#backtest=' + encodeURIComponent(btId);
+    try { window.history.replaceState(null, '', window.location.pathname + window.location.search + h); } catch {}
+  }, [view, selectedId, compareIds, btId]);
+  // Presentation mode: larger text, fewer controls (toggle with the button or the P key)
+  useEffect(() => { document.documentElement.dataset.present = present ? '1' : '0'; }, [present]);
+  useEffect(() => {
+    const k = (e) => {
+      if (e.ctrlKey || e.metaKey || e.altKey || !['p', 'P'].includes(e.key)) return;
+      const tag = (e.target.tagName || '').toLowerCase();
+      if (['input', 'textarea', 'select'].includes(tag) || e.target.isContentEditable) return;
+      setPresent((x) => !x);
+    };
+    window.addEventListener('keydown', k); return () => window.removeEventListener('keydown', k);
+  }, []);
+
+  const needSnap = !['home', 'backtest'].includes(view);
   return (
     <div className="min-h-screen text-bone">
       <Background risk={risk} fps={view === 'home' ? 60 : 30} />
@@ -56,16 +93,19 @@ export default function App() {
         <button onClick={() => go('home')} className="flex items-center gap-2.5" aria-label="Home">
           <img src="/icon.svg" alt="" className="h-8 w-8" /><span className="font-display text-xl font-bold tracking-tight">{t('title')}</span>
         </button>
-        <nav className="ml-6 hidden gap-1 md:flex" aria-label="Main">
+        <nav className="ml-6 hidden gap-1 md:flex no-present" aria-label="Main">
           {NAV.map(([k, label]) => <button key={k} onClick={() => go(k)} aria-current={view === k ? 'page' : undefined} className={`navlink ${view === k ? 'navlink-on' : ''}`}>{k === 'sms' ? t('nav_sms') : t(label)}</button>)}
+          {EXTRA.map(([k, label]) => <button key={k} onClick={() => go(k)} aria-current={view === k ? 'page' : undefined} className={`navlink hidden lg:inline-block ${view === k ? 'navlink-on' : ''}`}>{label}</button>)}
         </nav>
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
           <span className="hidden items-center gap-2 text-[13px] text-bone/70 sm:flex" title={snap?.updatedAt ? new Date(snap.updatedAt).toLocaleString() : ''}>
             <i className={`inline-block h-2 w-2 rounded-full ${live ? 'animate-pulse bg-moss' : 'bg-ochre'}`} />{live ? t('live') : t('stale')}{snap?.updatedAt ? ` · ${ago(snap.updatedAt)}` : ''}
           </span>
+          <button onClick={() => setTourOpen(true)} className="btn-ghost no-present hidden text-sm sm:inline-block" aria-label="How to use this app" title="How to use this app">?</button>
+          <button onClick={() => setPresent((x) => !x)} className={`btn-ghost text-sm ${present ? 'text-ember' : ''}`} aria-pressed={present} title="Presentation mode (P)">{present ? 'Exit' : 'Present'}</button>
           <label className="sr-only" htmlFor="lang">{t('language')}</label>
-          <select id="lang" value={lang} onChange={(e) => setLang(e.target.value)} className="field !py-1 text-sm">{LANGS.map((l) => <option key={l.code} value={l.code}>{l.native}{l.status !== 'reviewed' ? ' •' : ''}</option>)}</select>
-          <div className="relative">
+          <select id="lang" value={lang} onChange={(e) => setLang(e.target.value)} className="field no-present !py-1 text-sm">{LANGS.map((l) => <option key={l.code} value={l.code}>{l.native}{l.status !== 'reviewed' ? ' •' : ''}</option>)}</select>
+          <div className="relative no-present">
             <button onClick={() => (token ? logout() : setAuthOpen((x) => !x))} className={`btn-ghost text-sm ${token ? 'text-ochre' : ''}`} aria-expanded={authOpen}>{token ? `${t('authority')} ✓` : t('authority')}</button>
             {authOpen && !token && <form onSubmit={tryAuth} className="absolute right-0 top-11 w-64 border border-bone/15 bg-basalt p-3 shadow-xl"><label className="text-sm text-bone/70">Authority token<input name="token" type="password" autoFocus className="field mt-1 w-full" /></label><button className="btn-primary mt-2 w-full">Sign in</button></form>}
           </div>
@@ -89,12 +129,12 @@ export default function App() {
           </div>))}
       </div>
 
-      {view === 'home' && <Home snap={snap} error={error} onEnter={() => go('map')} onSelect={setSelectedId} />}
+      {view === 'home' && <Home snap={snap} error={error} onEnter={() => go('map')} onSelect={setSelectedId} onGo={go} />}
 
       {needSnap && !snap && <div className="grid min-h-screen place-items-center px-6 text-center"><div><p className="font-display text-2xl">{error === 'unreachable' ? 'Cannot reach the Dhara Alert server.' : t('loading')}</p>{error === 'weather-down' && <p className="mt-2 text-bone/60">The weather source is not reachable from the server yet. Retrying automatically.</p>}</div></div>}
 
       {needSnap && snap && view === 'map' && (
-        <div className="fixed inset-0 top-[53px] grid grid-cols-1 md:grid-cols-[19rem_1fr_auto]" style={{ bottom: 'var(--nav-h)' }}>
+        <div className="pm-top fixed inset-0 top-[53px] grid grid-cols-1 md:grid-cols-[19rem_1fr_auto]" style={{ bottom: 'var(--nav-h)' }}>
           <aside className={`${listOpen ? 'absolute inset-0 z-20' : 'hidden'} overflow-y-auto border-r border-bone/10 bg-basalt/90 md:static md:block md:bg-basalt/75`}>
             <h2 className="sticky top-0 border-b border-bone/10 bg-basalt/95 px-4 py-3 font-display text-base font-semibold">{t('sites_title')}</h2>
             <ol>{ranked.map((x) => (
@@ -112,9 +152,13 @@ export default function App() {
       {needSnap && snap && view === 'roads' && <RoadsView snap={snap} token={token} reload={reload} />}
       {view === 'report' && <ReportView reports={reports} token={token} reload={reload} setReports={setReports} />}
       {view === 'alerts' && <AlertsView alerts={alerts} onSelect={setSelectedId} setView={go} />}
+      {needSnap && snap && view === 'compare' && <CompareView snap={snap} ids={compareIds} setIds={setCompareIds} />}
+      {view === 'backtest' && <BacktestView eventId={btId} setEventId={setBtId} />}
       {needSnap && snap && view === 'sms' && <SubscribeView snap={snap} health={health} />}
 
-      <nav className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-bone/10 bg-basalt/92 backdrop-blur-sm md:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }} aria-label="Main">
+      <Tour open={tourOpen} onClose={() => setTourOpen(false)} />
+
+      <nav className="no-present fixed inset-x-0 bottom-0 z-30 grid grid-cols-6 border-t border-bone/10 bg-basalt/92 backdrop-blur-sm md:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }} aria-label="Main">
         {NAV.map(([k, label, d]) => <button key={k} onClick={() => go(k)} aria-current={view === k ? 'page' : undefined} className={`flex flex-col items-center gap-0.5 py-2 text-[10.5px] ${view === k ? 'text-ember' : 'text-bone/65'}`}><Icon d={d} /><span className="max-w-full truncate px-0.5">{k === 'sms' ? 'SMS' : t(label)}</span></button>)}
       </nav>
     </div>
