@@ -99,10 +99,14 @@ const ALL_SITES = [
   S('koraput', 'Koraput', 'Odisha', 18.812, 82.711, 41000, 'granite_gneiss'),
 ];
 
-// Region switch: default = North-East India (Problem Statement 26001, 25 sites). Set REGION=india on the server to monitor all 67 sites.
+// Region switch (REGION environment variable on the server):
+//   himalaya (default) = North + North-East India: the northern Himalayan belt plus the eight North-Eastern states
+//   ner                = North-East India only        north = northern Himalayan belt only        india = every site below
 const NER_STATES = new Set(['Assam', 'Meghalaya', 'Mizoram', 'Nagaland', 'Manipur', 'Sikkim', 'Arunachal Pradesh', 'Tripura']);
-const NER_ONLY = String(process.env.REGION || 'ner').toLowerCase() !== 'india';
-export const SITES = NER_ONLY ? ALL_SITES.filter((s) => NER_STATES.has(s.state)) : ALL_SITES;
+const NORTH_STATES = new Set(['Himachal Pradesh', 'Uttarakhand', 'Jammu & Kashmir', 'Ladakh', 'West Bengal']);   // West Bengal = Darjeeling hills
+export const REGION_MODE = ['ner', 'north', 'himalaya', 'india'].includes(String(process.env.REGION || '').toLowerCase()) ? String(process.env.REGION).toLowerCase() : 'himalaya';
+const KEEP_STATES = { ner: NER_STATES, north: NORTH_STATES, himalaya: new Set([...NER_STATES, ...NORTH_STATES]), india: null }[REGION_MODE];
+export const SITES = KEEP_STATES ? ALL_SITES.filter((s) => KEEP_STATES.has(s.state)) : ALL_SITES;
 
 const P = (lat, lng) => ({ lat, lng });
 // Corridors are approximate alignments between named waypoints (not surveyed centre-lines).
@@ -128,8 +132,10 @@ const ALL_ROADS = [
   { id: 'vizag-araku', name: 'Visakhapatnam - Araku Valley', pts: [P(17.6868, 83.2185), P(18.3273, 82.8759)] },
 ];
 
-const NER_ROADS = new Set(['gwh-shl-hfl', 'dmp-koh-imp', 'imp-noney-jir', 'tawang', 'gtk-lachung', 'slc-azl-lng', 'itn-ziro']);
-export const ROADS = NER_ONLY ? ALL_ROADS.filter((r) => NER_ROADS.has(r.id)) : ALL_ROADS;
+const NER_ROADS = ['gwh-shl-hfl', 'dmp-koh-imp', 'imp-noney-jir', 'tawang', 'gtk-lachung', 'slc-azl-lng', 'itn-ziro'];
+const NORTH_ROADS = ['slg-darjeeling', 'shimla-manali', 'rishikesh-badrinath', 'rishikesh-uttarkashi', 'jammu-srinagar'];
+const KEEP_ROADS = { ner: new Set(NER_ROADS), north: new Set(NORTH_ROADS), himalaya: new Set([...NER_ROADS, ...NORTH_ROADS]), india: null }[REGION_MODE];
+export const ROADS = KEEP_ROADS ? ALL_ROADS.filter((r) => KEEP_ROADS.has(r.id)) : ALL_ROADS;
 
 export const STATES = [...new Set(SITES.map((s) => s.state))].sort();
 
