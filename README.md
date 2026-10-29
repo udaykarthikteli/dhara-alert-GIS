@@ -1,5 +1,7 @@
 # Dhara Alert
-AI-based early warning and landslide risk monitoring for North-East India (Problem Statement 26001).
+AI-based early warning and landslide risk monitoring for North and North-East India (Problem Statement 26001).
+
+**Regions.** By default the server monitors the northern Himalayan belt plus the eight North-Eastern states (52 sites, 12 road corridors). Set the `REGION` environment variable to change it: `himalaya` (default), `ner` (North-East only, 25 sites), `north` (northern Himalaya only, 27 sites) or `india` (all 67 sites). Every site also needs its terrain data, so after changing region run `npm run seed:terrain` once and commit `server/seed/terrain.json`.
 
 ## Run it
 ```bash
@@ -14,7 +16,7 @@ Copy `.env.example` to `.env` to set `ADMIN_TOKEN` (authority tools) and optiona
 ## What is real
 | Part | How it works |
 |---|---|
-| Rainfall + soil moisture | Open-Meteo hourly data (7 days past, 4 days forecast) for all 25 sites, refreshed every 15 min |
+| Rainfall + soil moisture | Open-Meteo hourly data (7 days past, 4 days forecast) for every monitored site (52 by default), refreshed every 30 min |
 | Terrain | Steepest gradient within 500 m from the 90 m DEM (Open-Meteo elevation), cached |
 | Earthquakes | USGS feed, last 30 days; PGA by Fukushima-Tanaka attenuation feeds a pseudo-static kh |
 | Stability | Infinite-slope Mohr-Coulomb Factor of Safety with pore pressure and seismic term |
