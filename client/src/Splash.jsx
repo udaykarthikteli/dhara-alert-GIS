@@ -111,7 +111,7 @@ export default function Splash() {
       <div className="sp-stack">
         <Mark />
         <div className="sp-word">Dhara <b>Alert</b></div>
-        <div className="sp-tag">Landslide early warning · North-East India</div>
+        <div className="sp-tag">Landslide early warning · North and North-East India</div>
       </div>
       <div className="sp-bar"><i /></div>
       <button className="sp-skip" onClick={(e) => { e.stopPropagation(); setPhase('out'); }}>Skip</button>
