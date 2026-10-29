@@ -14,7 +14,7 @@ export const LANGS = [
 
 export const S = {
   en: {
-    title: 'Dhara Alert', tagline: 'Landslide early warning for North-East India',
+    title: 'Dhara Alert', tagline: 'Landslide early warning for North and North-East India',
     nav_map: 'Map', nav_dash: 'Dashboard', nav_roads: 'Roads', nav_report: 'Report', nav_alerts: 'Alerts', nav_sms: 'Get SMS alerts',
     enter: 'Open live map',
     level_low: 'Low', level_watch: 'Watch', level_warning: 'Warning', level_danger: 'Danger', level_critical: 'Critical',
@@ -31,7 +31,7 @@ export const S = {
     alert_tpl: '{level} landslide alert: {site}. Hazard index {lhi}/100. Stay away from steep slopes and cut roads. If you see cracks or hear rumbling, move to safer ground now.',
   },
   hi: {
-    title: 'धारा अलर्ट', tagline: 'पूर्वोत्तर भारत के लिए भूस्खलन पूर्व-चेतावनी',
+    title: 'धारा अलर्ट', tagline: 'उत्तर और पूर्वोत्तर भारत के लिए भूस्खलन पूर्व-चेतावनी',
     nav_map: 'नक्शा', nav_dash: 'डैशबोर्ड', nav_roads: 'सड़कें', nav_report: 'रिपोर्ट', nav_alerts: 'अलर्ट', nav_sms: 'SMS अलर्ट पाएँ',
     enter: 'लाइव नक्शा खोलें',
     level_low: 'कम', level_watch: 'निगरानी', level_warning: 'चेतावनी', level_danger: 'खतरा', level_critical: 'अति गंभीर',
@@ -48,7 +48,7 @@ export const S = {
     alert_tpl: '{level} भूस्खलन अलर्ट: {site}। खतरा सूचकांक {lhi}/100। खड़ी ढलानों और कटे हुए रास्तों से दूर रहें। दरारें दिखें या गड़गड़ाहट सुनाई दे तो तुरंत सुरक्षित स्थान पर जाएँ।',
   },
   as: {
-    title: 'ধাৰা এলাৰ্ট', tagline: 'উত্তৰ-পূব ভাৰতৰ বাবে ভূমিস্খলনৰ পূৰ্ব-সতৰ্কবাণী',
+    title: 'ধাৰা এলাৰ্ট', tagline: 'উত্তৰ আৰু উত্তৰ-পূব ভাৰতৰ বাবে ভূমিস্খলনৰ পূৰ্ব-সতৰ্কবাণী',
     nav_map: 'মানচিত্ৰ', nav_dash: 'ডেচব\'ৰ্ড', nav_roads: 'পথ', nav_report: 'প্ৰতিবেদন', nav_alerts: 'সতৰ্কবাণী', nav_sms: 'SMS সতৰ্কবাণী লওক',
     enter: 'লাইভ মানচিত্ৰ খোলক',
     level_low: 'নিম্ন', level_watch: 'নজৰদাৰী', level_warning: 'সতৰ্কতা', level_danger: 'বিপদ', level_critical: 'অতি গুৰুতৰ',
@@ -65,7 +65,7 @@ export const S = {
     alert_tpl: '{level} ভূমিস্খলন সতৰ্কবাণী: {site}। বিপদ সূচক {lhi}/100। ঠেক ঢাল আৰু কটা পথৰ পৰা আঁতৰি থাকক। ফাট দেখিলে বা গুমগুমনি শুনিলে তৎক্ষণাত নিৰাপদ ঠাইলৈ যাওক।',
   },
   bn: {
-    title: 'ধারা অ্যালার্ট', tagline: 'উত্তর-পূর্ব ভারতের জন্য ভূমিধসের আগাম সতর্কতা',
+    title: 'ধারা অ্যালার্ট', tagline: 'উত্তর ও উত্তর-পূর্ব ভারতের জন্য ভূমিধসের আগাম সতর্কতা',
     nav_map: 'মানচিত্র', nav_dash: 'ড্যাশবোর্ড', nav_roads: 'সড়ক', nav_report: 'রিপোর্ট', nav_alerts: 'সতর্কতা', nav_sms: 'SMS সতর্কতা পান',
     enter: 'লাইভ মানচিত্র খুলুন',
     level_low: 'নিম্ন', level_watch: 'নজরদারি', level_warning: 'সতর্কতা', level_danger: 'বিপদ', level_critical: 'অতি গুরুতর',
@@ -82,7 +82,7 @@ export const S = {
     alert_tpl: '{level} ভূমিধস সতর্কতা: {site}। ঝুঁকি সূচক {lhi}/100। খাড়া ঢাল ও কাটা রাস্তা থেকে দূরে থাকুন। ফাটল দেখলে বা গুড়গুড় শব্দ শুনলে এখনই নিরাপদ স্থানে যান।',
   },
   ne: {
-    title: 'धारा अलर्ट', tagline: 'उत्तर-पूर्वी भारतका लागि पहिरोको अग्रिम चेतावनी',
+    title: 'धारा अलर्ट', tagline: 'उत्तर र उत्तर-पूर्वी भारतका लागि पहिरोको अग्रिम चेतावनी',
     nav_map: 'नक्सा', nav_dash: 'ड्यासबोर्ड', nav_roads: 'सडक', nav_report: 'रिपोर्ट', nav_alerts: 'अलर्ट', nav_sms: 'SMS अलर्ट पाउनुहोस्',
     enter: 'लाइभ नक्सा खोल्नुहोस्',
     level_low: 'कम', level_watch: 'निगरानी', level_warning: 'चेतावनी', level_danger: 'खतरा', level_critical: 'अति गम्भीर',
